@@ -181,9 +181,114 @@ textarea.form-input{resize:vertical;min-height:70px}
 .ai-send{padding:9px 16px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;display:flex;align-items:center;gap:6px}
 .ai-send svg{width:14px;height:14px;stroke:#fff;stroke-width:2.2}
 .ai-send:hover{opacity:.85}
+
+/* MOBILE RESPONSIVE */
+.mob-topbar{display:none;background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+.mob-title{font-size:15px;font-weight:600;flex:1}
+.mob-menu-btn{background:none;border:none;cursor:pointer;padding:4px;color:var(--text)}
+.mob-menu-btn svg{width:20px;height:20px;stroke-width:2}
+.mob-add-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px}
+.mob-add-btn svg{width:14px;height:14px;stroke:#fff;stroke-width:2.5}
+.mob-nav{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.4)}
+.mob-nav.open{display:block}
+.mob-nav-panel{position:absolute;left:0;top:0;bottom:0;width:260px;background:var(--surface);overflow-y:auto;box-shadow:4px 0 20px rgba(0,0,0,.12);display:flex;flex-direction:column}
+.mob-nav-close{position:absolute;right:12px;top:12px;background:none;border:none;cursor:pointer;padding:4px;color:var(--text2)}
+.mob-nav-close svg{width:18px;height:18px;stroke-width:2}
+.mob-nav-overlay{position:absolute;right:0;top:0;bottom:0;left:260px}
+.mob-bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom));z-index:50}
+.mob-bottom-nav-inner{display:flex;justify-content:space-around}
+.mob-nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;cursor:pointer;background:none;border:none;font-family:'DM Sans',sans-serif;color:var(--text3);transition:color .15s;min-width:52px}
+.mob-nav-btn.active{color:var(--accent)}
+.mob-nav-btn svg{width:20px;height:20px;stroke-width:1.8}
+.mob-nav-btn span{font-size:10px;font-weight:500}
+@media(max-width:700px){
+  .sidebar{display:none}
+  .topbar{display:none}
+  .mob-topbar{display:flex}
+  .mob-bottom-nav{display:block}
+  .content{padding:14px 14px 80px}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .crm-layout{grid-template-columns:1fr;height:auto}
+  .cdetail{min-height:300px}
+  .pipe-board{grid-template-columns:1fr 1fr;overflow-x:auto}
+  .week-cal{gap:4px}
+  .day-cell{padding:7px 3px}
+  .day-num-lg{font-size:14px}
+  .day-name-sm{font-size:9px}
+  body{overflow:auto}
+  .app{height:auto;min-height:100vh}
+  .main{overflow:visible}
+  .ai-wrap{height:calc(100vh - 120px)}
+  .crm-layout{height:auto}
+}
 </style>
 </head>
 <body>
+
+<!-- MOBILE TOP BAR -->
+<div class="mob-topbar" id="mob-topbar">
+  <button class="mob-menu-btn" onclick="openMobNav()">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div class="mob-title" id="mob-title">Dashboard</div>
+  <button class="mob-add-btn" id="mob-add-btn" onclick="openModal()">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Aggiungi
+  </button>
+</div>
+<!-- MOBILE SIDE NAV -->
+<div class="mob-nav" id="mob-nav">
+  <div class="mob-nav-panel">
+    <button class="mob-nav-close" onclick="closeMobNav()"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div style="padding:22px 18px 12px;border-bottom:1px solid var(--border)">
+      <div style="font-size:16px;font-weight:600">Control Center</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">La tua vita, organizzata</div>
+    </div>
+    <div style="padding:6px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text3)">
+      <div class="sync-dot" id="mob-sync-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0"></div>
+      <span id="mob-sync-label">Connessione...</span>
+    </div>
+    <div style="padding:12px 10px">
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding:0 8px 8px">Panoramica</div>
+      <div class="nav-item active" id="mnav-dashboard" onclick="mobNav('dashboard',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</div>
+      <div class="nav-item" id="mnav-week" onclick="mobNav('week',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Settimana</div>
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding:12px 8px 8px">Vita Privata</div>
+      <div class="nav-item" id="mnav-personal" onclick="mobNav('personal',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>Agenda Personale</div>
+      <div class="nav-item" id="mnav-tasks" onclick="mobNav('tasks',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Task & To-Do</div>
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding:12px 8px 8px">Vita Professionale</div>
+      <div class="nav-item" id="mnav-crm" onclick="mobNav('crm',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>CRM Clienti</div>
+      <div class="nav-item" id="mnav-pipeline" onclick="mobNav('pipeline',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Pipeline Vendite</div>
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;padding:12px 8px 8px">Altro</div>
+      <div class="nav-item" id="mnav-ai" onclick="mobNav('ai',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Assistente AI</div>
+    </div>
+  </div>
+  <div class="mob-nav-overlay" onclick="closeMobNav()"></div>
+</div>
+<!-- MOBILE BOTTOM NAV -->
+<div class="mob-bottom-nav">
+  <div class="mob-bottom-nav-inner">
+    <button class="mob-nav-btn active" id="bnav-dashboard" onclick="mobNav('dashboard',null,'dashboard')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="mob-nav-btn" id="bnav-tasks" onclick="mobNav('tasks',null,'tasks')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Task</span>
+    </button>
+    <button class="mob-nav-btn" id="bnav-week" onclick="mobNav('week',null,'week')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>Agenda</span>
+    </button>
+    <button class="mob-nav-btn" id="bnav-crm" onclick="mobNav('crm',null,'crm')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      <span>CRM</span>
+    </button>
+    <button class="mob-nav-btn" id="bnav-ai" onclick="mobNav('ai',null,'ai')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      <span>AI</span>
+    </button>
+  </div>
+</div>
 <div class="app">
   <div class="sidebar">
     <div class="logo">
@@ -423,11 +528,13 @@ function renderDash(){
 
 function renderWeek(){
   const now=new Date(); now.setHours(0,0,0,0);
-  const dow=now.getDay(); const mon=new Date(now); mon.setDate(now.getDate()-(dow===0?6:dow-1));
+  const dow=now.getDay();
+  // Monday-based week: if Sunday(0) go back 6 days, else go back dow-1
+  const mon=new Date(now); mon.setDate(now.getDate()-(dow===0?6:dow-1));
   const cal=document.getElementById('week-cal'); cal.innerHTML='';
   for(let i=0;i<7;i++){
-    const d=new Date(mon); d.setDate(mon.getDate()+i);
-    const ds=d.toISOString().split('T')[0];
+    const d=new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+i);
+    const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const isT=d.getTime()===now.getTime();
     const evs=S.events.filter(e=>e.date===ds);
     cal.innerHTML+=`<div class="day-cell${isT?' today':''}" id="dc-${ds}" onclick="window._sd('${ds}')"><div class="day-name-sm">${GG[d.getDay()]}</div><div class="day-num-lg">${d.getDate()}</div><div class="day-pills">${evs.slice(0,3).map(e=>`<div class="day-pill" style="background:${e.type==='work'?'#1B5FA8':'#0F6E56'}"></div>`).join('')}</div></div>`;
@@ -437,7 +544,7 @@ function renderWeek(){
 window._sd=function(ds){
   document.querySelectorAll('.day-cell').forEach(c=>c.classList.remove('selected'));
   const dc=document.getElementById('dc-'+ds); if(dc) dc.classList.add('selected');
-  const d=new Date(ds+'T00:00:00');
+  const parts=ds.split('-'); const d=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
   document.getElementById('sel-day-title').textContent=`${GG[d.getDay()]} ${d.getDate()} ${MM[d.getMonth()]}`;
   const evs=S.events.filter(e=>e.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
   document.getElementById('sel-day-body').innerHTML=evs.length?evs.map(e=>`<div class="event-item"><div class="ev-dot" style="background:${e.type==='work'?'#1B5FA8':'#0F6E56'}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${e.time||''} ${e.location?'· '+esc(e.location):''}</div></div><button class="del-btn" onclick="window._de('${e.id}')">✕</button></div>`).join(''):'<div class="empty">Nessun appuntamento.</div>';
@@ -609,6 +716,43 @@ function addTyping(){
 const n=new Date();
 document.getElementById('today-label').textContent=`${GG[n.getDay()]} ${n.getDate()} ${MM[n.getMonth()]} ${n.getFullYear()}`;
 renderWeek();
+
+
+// MOBILE NAV
+window.openMobNav=function(){ document.getElementById('mob-nav').classList.add('open'); };
+window.closeMobNav=function(){ document.getElementById('mob-nav').classList.remove('open'); };
+
+function syncMobStatus(state,msg){
+  const d=document.getElementById('mob-sync-dot');
+  const l=document.getElementById('mob-sync-label');
+  if(d){ d.className='sync-dot '+state; d.style.cssText='width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s'; }
+  if(l) l.textContent=msg;
+}
+
+const PAGE_TITLES={dashboard:'Dashboard',week:'Settimana',personal:'Agenda',tasks:'Task & To-Do',crm:'CRM Clienti',pipeline:'Pipeline',ai:'Assistente AI'};
+
+window.mobNav=function(page, sideEl, bottomKey){
+  // reuse main nav logic
+  window.nav(page, null);
+  // update sidebar nav items
+  document.querySelectorAll('.mob-nav-panel .nav-item').forEach(n=>n.classList.remove('active'));
+  const mn=document.getElementById('mnav-'+page); if(mn) mn.classList.add('active');
+  // update bottom nav
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>b.classList.remove('active'));
+  const bk=bottomKey||page;
+  const bn=document.getElementById('bnav-'+bk); if(bn) bn.classList.add('active');
+  // update mobile title
+  const mt=document.getElementById('mob-title'); if(mt) mt.textContent=PAGE_TITLES[page]||page;
+  // hide add btn for week/ai
+  const ma=document.getElementById('mob-add-btn'); if(ma) ma.style.display=['week','ai'].includes(page)?'none':'';
+  closeMobNav();
+};
+
+// Patch syncOK/syncErr to also update mobile indicator
+const _origOK=syncOK, _origErr=syncErr, _origLoad=syncLoad;
+function syncOK(){ _origOK(); syncMobStatus('ok','Sincronizzato'); }
+function syncErr(m){ _origErr(m); syncMobStatus('err',m||'Errore'); }
+function syncLoad(){ _origLoad(); syncMobStatus('loading','Salvataggio...'); }
 
 </script>
 </body>
