@@ -603,6 +603,7 @@ function selDay(ds) {
     ? evs.map(e=>`<div class="ev-item"><div class="ev-dot" style="background:${e.type==='work'?'#1B5FA8':'#0F6E56'}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${e.time||''}${e.location?' · '+esc(e.location):''}</div></div><button class="del" onclick="delItem('events','${e.id}')">✕</button></div>`).join('')
     : '<div class="empty">Nessun appuntamento.</div>';
 }
+window.selDay = selDay;
 
 /* ── PERSONAL ── */
 function setEF(f, btn) {
