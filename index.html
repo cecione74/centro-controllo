@@ -260,7 +260,8 @@ textarea.fi{resize:vertical;min-height:65px}
     </div>
     <div class="nav-block">
       <div class="nav-cat">Vita Professionale</div>
-      <div class="nav-item" onclick="goPage('crm',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>CRM Clienti</div>
+      <div class="nav-item" onclick="goPage('crm',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>CRM Contatti</div>
+      <div class="nav-item" onclick="goPage('companies',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Aziende Clienti</div>
       <div class="nav-item" onclick="goPage('pipeline',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Pipeline Vendite</div>
     </div>
     <div class="sidebar-foot">
@@ -283,8 +284,17 @@ textarea.fi{resize:vertical;min-height:65px}
         </div>
         <div class="three-col" id="days-strip"></div>
         <div class="two-col" style="margin-top:16px">
-          <div class="card"><div class="card-head">Prossimi appuntamenti</div><div id="d-ev"><div class="empty">Caricamento...</div></div></div>
-          <div class="card"><div class="card-head">Task in sospeso</div><div id="d-tk"><div class="empty">Caricamento...</div></div></div>
+          <div class="card" style="grid-column:1/-1">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <div class="card-head" style="margin-bottom:0">Prossimi impegni</div>
+              <div style="display:flex;gap:6px">
+                <button class="fb active" id="df-all" onclick="setDashFilter('all',this)">Tutti</button>
+                <button class="fb" id="df-ev" onclick="setDashFilter('ev',this)">Appuntamenti</button>
+                <button class="fb" id="df-tk" onclick="setDashFilter('tk',this)">Task</button>
+              </div>
+            </div>
+            <div id="d-ev"><div class="empty">Caricamento...</div></div>
+          </div>
         </div>
       </div>
       <div class="page" id="page-week">
@@ -368,6 +378,15 @@ textarea.fi{resize:vertical;min-height:65px}
             <div class="clist-body" id="clist-body"></div>
           </div>
           <div class="cdetail" id="cdetail"><div class="empty" style="margin-top:60px">Seleziona un contatto.</div></div>
+        </div>
+      </div>
+      <div class="page" id="page-companies">
+        <div class="crm-layout">
+          <div class="clist">
+            <div class="csearch"><input type="text" id="comp-q" placeholder="Cerca azienda..." oninput="renderCompanies()"></div>
+            <div class="clist-body" id="comp-list-body"></div>
+          </div>
+          <div class="cdetail" id="comp-detail"><div class="empty" style="margin-top:60px">Seleziona un'azienda.</div></div>
         </div>
       </div>
       <div class="page" id="page-pipeline">
@@ -479,9 +498,9 @@ const MM  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','A
 const MM3 = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const STAGES = ['Lead','Proposta','Negoziazione','Chiuso Vinto','Chiuso Perso'];
 const MEAL_SLOTS = ['colazione','spuntino','pranzo','merenda','cena'];
-const PAGE_TITLES = {dashboard:'Dashboard',week:'Settimana',personal:'Agenda personale',tasks:'Task & To-Do',meals:'Pasti',crm:'CRM Clienti',pipeline:'Pipeline Vendite',ai:'Assistente AI'};
+const PAGE_TITLES = {dashboard:'Dashboard',week:'Settimana',personal:'Agenda personale',tasks:'Task & To-Do',meals:'Pasti',crm:'CRM Clienti',pipeline:'Pipeline Vendite',companies:'Aziende Clienti',ai:'Assistente AI'};
 
-const S = {events:[],tasks:[],contacts:[],deals:[],foods:[],selContact:null,curPage:'dashboard',tkF:'pending',evF:'all',mF:'all'};
+const S = {events:[],tasks:[],contacts:[],deals:[],foods:[],companies:[],selContact:null,selCompany:null,curPage:'dashboard',tkF:'pending',evF:'all',mF:'all'};
 let curModal=null, editId=null, aiHist=[];
 
 function setSync(state,msg){
@@ -489,7 +508,7 @@ function setSync(state,msg){
   const l1=document.getElementById('sync-lbl');if(l1)l1.textContent=msg;
   const l2=document.getElementById('msync-lbl');if(l2)l2.textContent=msg;
 }
-let loaded={events:false,tasks:false,contacts:false,deals:false,foods:false};
+let loaded={events:false,tasks:false,contacts:false,deals:false,foods:false,companies:false};
 function chkLoaded(){if(Object.values(loaded).every(Boolean))setSync('ok','Sincronizzato');}
 
 onSnap('events',   docs=>{S.events=docs;loaded.events=true;chkLoaded();renderAll();},()=>setSync('err','Errore'));
@@ -497,6 +516,7 @@ onSnap('tasks',    docs=>{S.tasks=docs;loaded.tasks=true;chkLoaded();renderAll()
 onSnap('contacts', docs=>{S.contacts=docs;loaded.contacts=true;chkLoaded();renderAll();},()=>setSync('err','Errore'));
 onSnap('deals',    docs=>{S.deals=docs;loaded.deals=true;chkLoaded();renderAll();},()=>setSync('err','Errore'));
 onSnap('foods',    docs=>{S.foods=docs;loaded.foods=true;chkLoaded();renderMeals();},()=>setSync('err','Errore'));
+onSnap('companies',docs=>{S.companies=docs;loaded.companies=true;chkLoaded();renderCompanies();},()=>setSync('err','Errore'));
 
 
 
@@ -508,7 +528,7 @@ function avClass(n){return 'av-'+((n.charCodeAt(0)+(n.charCodeAt(1)||0))%5);}
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function evColor(e){return e.type==='work'?'#1B5FA8':e.cat==='medico'?'#8C2B2B':'#0F6E56';}
 
-function renderAll(){renderDash();renderWeek();renderPersonal();renderTasks();renderCRM();renderPipeline();renderMeals();updateBadges();}
+function renderAll(){renderDash();renderWeek();renderPersonal();renderTasks();renderCRM();renderPipeline();renderMeals();renderCompanies();updateBadges();}
 
 function updateBadges(){
   const today=new Date();today.setHours(0,0,0,0);
@@ -536,8 +556,36 @@ function renderDash(){
     const inner=all.length?all.map(x=>`<div class="day-sched-item"><div class="day-sched-dot" style="background:${x.color}"></div><div class="day-sched-body"><div class="day-sched-title">${esc(x.title)}</div>${x.sub?`<div class="day-sched-sub">${esc(x.sub)}</div>`:''}</div></div>`).join(''):`<div class="empty" style="padding:12px 0">Libero</div>`;
     strip.innerHTML+=`<div class="card" style="margin-bottom:0"><div class="card-head">${esc(label)}</div>${inner}</div>`;
   }
-  document.getElementById('d-ev').innerHTML=up.length?up.slice(0,5).map(e=>`<div class="ev-item"><div class="ev-dot" style="background:${evColor(e)}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${esc(e.cat||'')}${e.location?' · '+esc(e.location):''}</div></div><div class="ev-date">${fmt3(e.date)}</div></div>`).join(''):'<div class="empty">Nessun appuntamento nei prossimi 7 giorni.</div>';
-  document.getElementById('d-tk').innerHTML=op.length?op.slice(0,5).map(t=>`<div class="task-item" onclick="openEditTask('${t.id}')"><div class="chk" onclick="event.stopPropagation();togTask('${t.id}')"><svg fill="none" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tt">${esc(t.title)}</div><span class="tag tag-${t.cat||'personal'}">${t.cat||'personal'}</span></div>`).join(''):'<div class="empty">Nessun task aperto. Ottimo!</div>';
+  renderDashList();
+}
+
+// ── DASHBOARD FILTER ──
+let dashFilter = 'all';
+function setDashFilter(f, btn) {
+  dashFilter = f;
+  document.querySelectorAll('#page-dashboard .fb').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderDashList();
+}
+window.setDashFilter = setDashFilter;
+
+function renderDashList() {
+  const today=new Date();today.setHours(0,0,0,0);
+  const w7=new Date(today);w7.setDate(w7.getDate()+7);
+  const up=S.events.filter(e=>{const d=parseDate(e.date);return d>=today&&d<=w7;}).sort((a,b)=>a.date.localeCompare(b.date));
+  const op=S.tasks.filter(t=>!t.done&&t.due).filter(t=>{const d=parseDate(t.due);return d>=today&&d<=w7;}).sort((a,b)=>a.due.localeCompare(b.due));
+
+  let items = [];
+  if(dashFilter !== 'tk') items = items.concat(up.map(e=>({type:'ev', date:e.date, el:
+    `<div class="ev-item"><div class="ev-dot" style="background:${evColor(e)}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${esc(e.cat||'')}${e.location?' · '+esc(e.location):''}</div></div><div class="ev-date">${fmt3(e.date)}</div></div>`
+  })));
+  if(dashFilter !== 'ev') items = items.concat(op.map(t=>({type:'tk', date:t.due, el:
+    `<div class="ev-item"><div class="ev-dot" style="background:var(--amber);flex-shrink:0"></div><div class="ev-info"><div class="ev-name">${esc(t.title)}</div><div class="ev-meta">task · ${t.cat||'personal'}</div></div><div class="ev-date" style="color:var(--amber)">${fmt3(t.due)}</div></div>`
+  })));
+  items.sort((a,b)=>a.date.localeCompare(b.date));
+  const el = document.getElementById('d-ev');
+  if(!el) return;
+  el.innerHTML = items.length ? items.slice(0,8).map(i=>i.el).join('') : '<div class="empty">Nessun impegno nei prossimi 7 giorni.</div>';
 }
 
 // ── CALENDAR STATE ──
@@ -727,7 +775,11 @@ function renderCRM(){
   const q=(document.getElementById('crm-q')||{}).value||'';
   const fl=S.contacts.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||(c.company||'').toLowerCase().includes(q.toLowerCase()));
   document.getElementById('clist-body').innerHTML=fl.length
-    ?fl.map(c=>`<div class="ci${S.selContact===c.id?' active':''}" onclick="selContact('${c.id}')"><div class="av ${avClass(c.name)}">${ini(c.name)}</div><div style="flex:1;min-width:0"><div class="cn">${esc(c.name)}</div><div class="cr">${esc(c.company||'')}</div></div><span class="sb sb-${c.status||'lead'}">${c.status||'lead'}</span></div>`).join('')
+    ?fl.map(c=>{
+      const comp = c.companyId ? S.companies.find(x=>x.id===c.companyId) : null;
+      const compName = comp ? comp.name : (c.company||'');
+      return `<div class="ci${S.selContact===c.id?' active':''}" onclick="selContact('${c.id}')"><div class="av ${avClass(c.name)}">${ini(c.name)}</div><div style="flex:1;min-width:0"><div class="cn">${esc(c.name)}</div><div class="cr">${esc(compName)}</div></div><span class="sb sb-${c.status||'lead'}">${c.status||'lead'}</span></div>`;
+    }).join('')
     :'<div class="empty">Nessun contatto.</div>';
   if(S.selContact)renderCD(S.selContact);
 }
@@ -753,6 +805,129 @@ function renderPipeline(){
   document.getElementById('pipe-chart').innerHTML=vals.map(x=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><div style="font-size:11px;color:var(--text2);width:80px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.s}</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px;overflow:hidden"><div style="width:${Math.round(x.v/mx*100)}%;height:100%;background:var(--accent);border-radius:5px"></div></div><div style="font-size:11px;color:var(--text2);width:65px;text-align:right;font-family:'DM Mono',monospace">€ ${x.v.toLocaleString('it-IT')}</div></div>`).join('');
 }
 
+// ── COMPANIES CRM ──
+function renderCompanies() {
+  const q = (document.getElementById('comp-q')||{}).value||'';
+  const fl = S.companies.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase()));
+  document.getElementById('comp-list-body').innerHTML = fl.length
+    ? fl.map(c=>`<div class="ci${S.selCompany===c.id?' active':''}" onclick="selCompany('${c.id}')">
+        <div class="av ${avClass(c.name)}">${ini(c.name)}</div>
+        <div style="flex:1;min-width:0"><div class="cn">${esc(c.name)}</div><div class="cr">${esc(c.sector||'')}</div></div>
+        <span class="sb sb-${c.status||'cliente'}">${c.status||'cliente'}</span>
+      </div>`).join('')
+    : '<div class="empty">Nessuna azienda.<br>Usa + Aggiungi.</div>';
+  if(S.selCompany) renderCompanyDetail(S.selCompany);
+}
+window.renderCompanies = renderCompanies;
+
+function selCompany(id) { S.selCompany=id; renderCompanies(); renderCompanyDetail(id); }
+window.selCompany = selCompany;
+
+function renderCompanyDetail(id) {
+  const c = S.companies.find(c=>c.id===id); if(!c) return;
+  const refs = S.contacts.filter(ct=>ct.companyId===id);
+  const today = new Date().toLocaleDateString('it-IT');
+  const el = document.getElementById('comp-detail');
+  
+  // Contract status
+  let contractBadge = '';
+  if(c.contractEnd) {
+    const end = parseDate(c.contractEnd);
+    const now = new Date(); now.setHours(0,0,0,0);
+    const diff = Math.round((end-now)/(1000*60*60*24));
+    if(diff < 0) contractBadge = `<span class="tag tag-urgent">Scaduto</span>`;
+    else if(diff <= 60) contractBadge = `<span class="tag tag-auto">Scade tra ${diff}gg</span>`;
+    else contractBadge = `<span class="tag tag-personal">Attivo</span>`;
+  }
+
+  el.innerHTML = `
+    <div class="cd-head">
+      <div class="av-xl ${avClass(c.name)}">${ini(c.name)}</div>
+      <div style="flex:1">
+        <div class="cd-name">${esc(c.name)}</div>
+        <div class="cd-role">${esc(c.sector||'')}${c.website?' · '+esc(c.website):''}</div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <span class="sb sb-${c.status||'cliente'}">${c.status||'cliente'}</span>
+          ${contractBadge}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="edit-btn" onclick="openEditCompany('${c.id}')">✏️ Modifica</button>
+        <button class="del" onclick="window.delItem('companies','${c.id}');S.selCompany=null">✕</button>
+      </div>
+    </div>
+    <div class="cd-body">
+      <div class="ds">
+        <div class="ds-title">Budget & Contratto</div>
+        <div class="dg">
+          ${c.budget?`<div class="df"><label>Budget annuale</label><span style="font-size:16px;font-weight:700">€ ${parseInt(c.budget).toLocaleString('it-IT')}</span></div>`:''}
+          ${c.billing?`<div class="df"><label>Fatturazione</label><span>${esc(c.billing)}</span></div>`:''}
+          ${c.contractStart?`<div class="df"><label>Inizio contratto</label><span>${fmt3(c.contractStart)}</span></div>`:''}
+          ${c.contractEnd?`<div class="df"><label>Scadenza contratto</label><span>${fmt3(c.contractEnd)}</span></div>`:''}
+        </div>
+      </div>
+      ${refs.length?`
+      <div class="ds">
+        <div class="ds-title">Referenti (${refs.length})</div>
+        ${refs.map(r=>`<div class="tl">
+          <div class="av ${avClass(r.name)}" style="width:28px;height:28px;font-size:10px">${ini(r.name)}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500">${esc(r.name)}</div>
+            <div style="font-size:11px;color:var(--text3)">${esc(r.role||'')}${r.email?' · '+esc(r.email):''}${r.phone?' · '+esc(r.phone):''}</div>
+          </div>
+        </div>`).join('')}
+      </div>`:''}
+      ${c.notes?`
+      <div class="ds">
+        <div class="ds-title">Note</div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${esc(c.notes)}</p>
+      </div>`:''}
+    </div>`;
+}
+
+function openEditCompany(id) {
+  const c = S.companies.find(c=>c.id===id); if(!c) return;
+  curModal='company'; editId=id;
+  document.getElementById('modal-title').textContent='Modifica azienda';
+  document.getElementById('modal-body').innerHTML = buildCompanyForm(c);
+  document.getElementById('overlay').classList.add('open');
+}
+window.openEditCompany = openEditCompany;
+
+function buildCompanyForm(c) {
+  const contactOpts = S.contacts.map(ct=>`<option value="${ct.id}"${c&&ct.companyId===c?.id?' selected':''}>${esc(ct.name)}</option>`).join('');
+  return `
+    <div class="fr">
+      <div class="fg"><label class="fl">Nome azienda *</label><input class="fi" id="f-cname" value="${esc(c?.name||'')}" placeholder="es. Acme Srl"></div>
+      <div class="fg"><label class="fl">Settore</label><input class="fi" id="f-sector" value="${esc(c?.sector||'')}" placeholder="es. Energia, Tech"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Stato</label><select class="fi" id="f-status">
+        <option value="cliente"${c?.status==='cliente'?' selected':''}>Cliente</option>
+        <option value="prospect"${c?.status==='prospect'?' selected':''}>Prospect</option>
+        <option value="ex-cliente"${c?.status==='ex-cliente'?' selected':''}>Ex cliente</option>
+      </select></div>
+      <div class="fg"><label class="fl">Sito web</label><input class="fi" id="f-website" value="${esc(c?.website||'')}" placeholder="es. www.acme.it"></div>
+    </div>
+    <div class="ds-title" style="margin:4px 0 10px">Budget & Contratto</div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Budget annuale (€)</label><input class="fi" id="f-budget" type="number" min="0" value="${c?.budget||''}" placeholder="0"></div>
+      <div class="fg"><label class="fl">Fatturazione</label><select class="fi" id="f-billing">
+        <option value="">— seleziona —</option>
+        <option value="Mensile"${c?.billing==='Mensile'?' selected':''}>Mensile</option>
+        <option value="Trimestrale"${c?.billing==='Trimestrale'?' selected':''}>Trimestrale</option>
+        <option value="Semestrale"${c?.billing==='Semestrale'?' selected':''}>Semestrale</option>
+        <option value="Annuale"${c?.billing==='Annuale'?' selected':''}>Annuale</option>
+        <option value="A progetto"${c?.billing==='A progetto'?' selected':''}>A progetto</option>
+      </select></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Inizio contratto</label><input class="fi" type="date" id="f-cstart" value="${c?.contractStart||''}"></div>
+      <div class="fg"><label class="fl">Scadenza contratto</label><input class="fi" type="date" id="f-cend" value="${c?.contractEnd||''}"></div>
+    </div>
+    <div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes" placeholder="Info utili, dettagli contratto, accordi particolari...">${esc(c?.notes||'')}</textarea></div>`;
+}
+
 function goPage(page,sidebarEl){
   S.curPage=page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -764,7 +939,7 @@ function goPage(page,sidebarEl){
   const mt=document.getElementById('mob-title');if(mt)mt.textContent=PAGE_TITLES[page]||page;
   const ma=document.getElementById('mob-add');if(ma)ma.style.display=['week','ai'].includes(page)?'none':'';
   document.querySelectorAll('.mbn').forEach(b=>b.classList.remove('active'));
-  const bnMap={dashboard:'dashboard',tasks:'tasks',week:'week',personal:'week',crm:'crm',pipeline:'crm',ai:'ai',meals:'tasks'};
+  const bnMap={dashboard:'dashboard',tasks:'tasks',week:'week',personal:'week',crm:'crm',pipeline:'crm',companies:'crm',ai:'ai',meals:'tasks'};
   const bn=document.getElementById('mbn-'+(bnMap[page]||page));if(bn)bn.classList.add('active');
   if(page==='crm'&&S.selContact)renderCD(S.selContact);
 }
@@ -808,7 +983,9 @@ function openModal(){
   if(['personal','week','dashboard'].includes(p)){curModal='event';t.textContent='Nuovo appuntamento';b.innerHTML=buildEventForm(null);}
   else if(p==='tasks'){curModal='task';t.textContent='Nuovo task';b.innerHTML=buildTaskForm(null);}
   else if(p==='meals'){curModal='food';t.textContent='Nuovo alimento';b.innerHTML=buildFoodForm(null);}
-  else if(p==='crm'){curModal='contact';t.textContent='Nuovo contatto';b.innerHTML=`<div class="fr"><div class="fg"><label class="fl">Nome *</label><input class="fi" id="f-name" placeholder="Mario Rossi"></div><div class="fg"><label class="fl">Azienda</label><input class="fi" id="f-company"></div></div><div class="fr"><div class="fg"><label class="fl">Ruolo</label><input class="fi" id="f-role"></div><div class="fg"><label class="fl">Stato</label><select class="fi" id="f-status"><option value="lead">Lead</option><option value="prospect">Prospect</option><option value="cliente">Cliente</option></select></div></div><div class="fr"><div class="fg"><label class="fl">Email</label><input class="fi" id="f-email" type="email"></div><div class="fg"><label class="fl">Telefono</label><input class="fi" id="f-phone" type="tel"></div></div><div class="fr"><div class="fg"><label class="fl">Settore</label><input class="fi" id="f-sector"></div><div class="fg"><label class="fl">Città</label><input class="fi" id="f-city"></div></div><div class="fg"><label class="fl">Valore stimato (€)</label><input class="fi" id="f-value" type="number" min="0"></div><div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes"></textarea></div>`;}
+  else if(p==='crm'){curModal='contact';t.textContent='Nuovo contatto';const compOpts = S.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    b.innerHTML=`<div class="fr"><div class="fg"><label class="fl">Nome *</label><input class="fi" id="f-name" placeholder="Mario Rossi"></div><div class="fg"><label class="fl">Azienda (CRM)</label><select class="fi" id="f-companyId"><option value="">— nessuna —</option>${compOpts}</select></div></div><div class="fr"><div class="fg"><label class="fl">Ruolo</label><input class="fi" id="f-role"></div><div class="fg"><label class="fl">Stato</label><select class="fi" id="f-status"><option value="lead">Lead</option><option value="prospect">Prospect</option><option value="cliente">Cliente</option></select></div></div><div class="fr"><div class="fg"><label class="fl">Email</label><input class="fi" id="f-email" type="email"></div><div class="fg"><label class="fl">Telefono</label><input class="fi" id="f-phone" type="tel"></div></div><div class="fr"><div class="fg"><label class="fl">Settore</label><input class="fi" id="f-sector"></div><div class="fg"><label class="fl">Città</label><input class="fi" id="f-city"></div></div><div class="fg"><label class="fl">Valore stimato (€)</label><input class="fi" id="f-value" type="number" min="0"></div><div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes"></textarea></div>`;}
+  else if(p==='companies'){curModal='company';editId=null;t.textContent='Nuova azienda';b.innerHTML=buildCompanyForm(null);}
   else if(p==='pipeline'){curModal='deal';t.textContent='Nuova trattativa';b.innerHTML=`<div class="fg"><label class="fl">Nome trattativa *</label><input class="fi" id="f-name" placeholder="es. Fornitura 2025"></div><div class="fr"><div class="fg"><label class="fl">Stadio</label><select class="fi" id="f-stage">${STAGES.map(s=>`<option>${s}</option>`).join('')}</select></div><div class="fg"><label class="fl">Valore (€)</label><input class="fi" id="f-value" type="number" min="0"></div></div><div class="fr"><div class="fg"><label class="fl">Contatto</label><select class="fi" id="f-contact"><option value="">— nessuno —</option>${S.contacts.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')}</select></div><div class="fg"><label class="fl">Follow-up entro</label><input type="date" class="fi" id="f-followup"></div></div><div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes"></textarea></div>`;}
   else return;
   document.getElementById('overlay').classList.add('open');
@@ -837,15 +1014,24 @@ async function saveModal(){
     if(editId)await updItem('foods',editId,data);else await addItem('foods',data);
   } else if(curModal==='contact'){
     const name=(g('f-name').value||'').trim();if(!name){alert('Nome obbligatorio.');return;}
-    await addItem('contacts',{name,company:g('f-company').value,role:g('f-role').value,status:g('f-status').value,email:g('f-email').value,phone:g('f-phone').value,sector:g('f-sector').value,city:g('f-city').value,value:g('f-value').value,notes:g('f-notes').value});
+    await addItem('contacts',{name,companyId:g('f-companyId')?g('f-companyId').value:'',role:g('f-role').value,status:g('f-status').value,email:g('f-email').value,phone:g('f-phone').value,sector:g('f-sector').value,city:g('f-city').value,value:g('f-value').value,notes:g('f-notes').value});
   } else if(curModal==='deal'){
     const name=(g('f-name').value||'').trim();if(!name){alert('Nome obbligatorio.');return;}
     await addItem('deals',{name,stage:g('f-stage').value,value:g('f-value').value,contact:g('f-contact').value,followup:g('f-followup').value,notes:g('f-notes').value});
+  } else if(curModal==='company'){
+    const name=(g('f-cname').value||'').trim();if(!name){alert('Nome azienda obbligatorio.');return;}
+    const data={name,sector:g('f-sector').value,status:g('f-status').value,website:g('f-website').value,budget:g('f-budget').value,billing:g('f-billing').value,contractStart:g('f-cstart').value,contractEnd:g('f-cend').value,notes:g('f-notes').value};
+    if(editId) await updItem('companies',editId,data);
+    else { const res = await db.collection('companies').add({...data,_ts:TS()}); S.selCompany=res.id; }
   }
   closeModal();
 }
 window.saveModal=saveModal;
-window.delItem=function(col,id){delItem(col,id);};
+window.delItem=function(col,id){
+  db.collection(col).doc(id).delete()
+    .then(()=>setSync('ok','Sincronizzato'))
+    .catch(e=>setSync('err','Errore eliminazione'));
+};
 
 function openMealPlan(){document.getElementById('meal-overlay').classList.add('open');}
 window.openMealPlan=openMealPlan;
