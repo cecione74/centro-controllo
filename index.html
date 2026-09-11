@@ -201,6 +201,29 @@ textarea.fi{resize:vertical;min-height:65px}
   .cal-cell-num{font-size:12px}
   .cal-badge{font-size:9px;padding:1px 5px}
 }
+
+/* ── NOTES ── */
+.note-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color .15s;position:relative}
+.note-card:hover{border-color:var(--border2)}
+.note-card.prio-alta{border-left:3px solid var(--red)}
+.note-card.prio-media{border-left:3px solid var(--amber)}
+.note-card.prio-bassa{border-left:3px solid var(--green)}
+.note-card.archiviata{opacity:.5}
+.note-title{font-size:14px;font-weight:600;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-preview{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px}
+.note-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.note-meta-item{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
+.tag-note-lavoro{background:var(--blue-bg);color:var(--blue)}
+.tag-note-privato{background:var(--purple-bg);color:var(--purple)}
+.tag-prio-alta{background:var(--red-bg);color:var(--red)}
+.tag-prio-media{background:var(--amber-bg);color:var(--amber)}
+.tag-prio-bassa{background:var(--green-bg);color:var(--green)}
+.tag-prio-urgente{background:#FFEBEB;color:#7A0000;font-weight:700}
+.tag-stato-bloccato{background:var(--red-bg);color:var(--red)}
+.tag-stato-attivo{background:var(--blue-bg);color:var(--blue)}
+.tag-stato-completato{background:var(--green-bg);color:var(--green)}
+.tag-stato-da_pianificare{background:var(--surface2);color:var(--text2)}
+
 .mob-bar{display:none}.mob-bnav{display:none}
 @media(max-width:700px){
   body{overflow:auto}
@@ -263,6 +286,7 @@ textarea.fi{resize:vertical;min-height:65px}
       <div class="nav-item" onclick="goPage('crm',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>CRM Contatti</div>
       <div class="nav-item" onclick="goPage('companies',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>Aziende Clienti</div>
       <div class="nav-item" onclick="goPage('pipeline',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Pipeline Vendite</div>
+      <div class="nav-item" onclick="goPage('notes',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Note</div>
     </div>
     <div class="sidebar-foot">
       <div class="nav-item" onclick="goPage('ai',this)"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Assistente AI</div>
@@ -276,11 +300,17 @@ textarea.fi{resize:vertical;min-height:65px}
     </div>
     <div class="content">
       <div class="page active" id="page-dashboard">
-        <div class="kpi-row">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
           <div class="kpi"><div class="kpi-label">Appuntamenti settimana</div><div class="kpi-val" id="k-ev">—</div><div class="kpi-sub">prossimi 7 giorni</div></div>
-          <div class="kpi"><div class="kpi-label">Task aperti</div><div class="kpi-val" id="k-tk">—</div><div class="kpi-sub">da completare</div></div>
-          <div class="kpi"><div class="kpi-label">Contatti CRM</div><div class="kpi-val" id="k-ct">—</div><div class="kpi-sub">totali</div></div>
-          <div class="kpi"><div class="kpi-label">Trattative attive</div><div class="kpi-val" id="k-dl">—</div><div class="kpi-sub">in pipeline</div></div>
+          <div class="kpi">
+            <div class="kpi-label">Task — riepilogo</div>
+            <div id="k-task-breakdown" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+              <div style="font-size:12px;color:var(--text2)">📋 Da pianif. <strong id="k-da-pian">—</strong></div>
+              <div style="font-size:12px;color:var(--blue)">▶️ Attivi <strong id="k-attivi">—</strong></div>
+              <div style="font-size:12px;color:var(--red)">🔴 Bloccati <strong id="k-blocc">—</strong></div>
+              <div style="font-size:12px;color:var(--green)">✅ Completati <strong id="k-compl">—</strong></div>
+            </div>
+          </div>
         </div>
         <div class="three-col" id="days-strip"></div>
         <div class="two-col" style="margin-top:16px">
@@ -333,11 +363,13 @@ textarea.fi{resize:vertical;min-height:65px}
       </div>
       <div class="page" id="page-tasks">
         <div class="filters">
-          <button class="fb active" onclick="setTF('pending',this)">Da fare</button>
-          <button class="fb" onclick="setTF('work',this)">Lavoro</button>
-          <button class="fb" onclick="setTF('personal',this)">Personale</button>
-          <button class="fb" onclick="setTF('urgent',this)">Urgenti</button>
-          <button class="fb" onclick="setTF('done',this)">Completati</button>
+          <button class="fb active" onclick="setTF('aperti',this)">Aperti</button>
+          <button class="fb" onclick="setTF('da_pianificare',this)">📋 Da pianificare</button>
+          <button class="fb" onclick="setTF('attivo',this)">▶️ Attivi</button>
+          <button class="fb" onclick="setTF('bloccato',this)">🔴 Bloccati</button>
+          <button class="fb" onclick="setTF('completato',this)">✅ Completati</button>
+          <button class="fb" onclick="setTF('urgente',this)">🚨 Urgenti</button>
+          <button class="fb" onclick="setTF('alta',this)">🔴 Alta priorità</button>
           <button class="fb" onclick="setTF('all',this)">Tutti</button>
         </div>
         <div id="task-list"></div>
@@ -387,6 +419,29 @@ textarea.fi{resize:vertical;min-height:65px}
             <div class="clist-body" id="comp-list-body"></div>
           </div>
           <div class="cdetail" id="comp-detail"><div class="empty" style="margin-top:60px">Seleziona un'azienda.</div></div>
+        </div>
+      </div>
+      <div class="page" id="page-notes">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <div class="filters" style="margin-bottom:0;flex:1">
+            <button class="fb active" onclick="setNF('all',this)">Tutte</button>
+            <button class="fb" onclick="setNF('lavoro',this)">Lavoro</button>
+            <button class="fb" onclick="setNF('privato',this)">Privato</button>
+            <button class="fb" onclick="setNF('alta',this)">🔴 Alta priorità</button>
+            <button class="fb" onclick="setNF('archiviate',this)">Archiviate</button>
+          </div>
+          <input id="notes-search" class="fi" style="width:200px;margin-bottom:0" placeholder="Cerca nelle note..." oninput="renderNotes()">
+        </div>
+        <div id="notes-list"></div>
+        <!-- Note detail panel -->
+        <div id="note-detail-panel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:480px;max-width:96vw;background:var(--surface);border-left:1px solid var(--border);box-shadow:-4px 0 20px rgba(0,0,0,.08);z-index:200;display:none;flex-direction:column">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <button class="btn" onclick="closeNotePanel()" style="padding:6px 10px"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <div id="note-panel-title" style="font-size:15px;font-weight:600;flex:1"></div>
+            <button class="edit-btn" id="note-panel-edit-btn">✏️ Modifica</button>
+            <button class="del" id="note-panel-del-btn">✕</button>
+          </div>
+          <div style="padding:16px 20px;overflow-y:auto;flex:1" id="note-panel-body"></div>
         </div>
       </div>
       <div class="page" id="page-pipeline">
@@ -498,9 +553,9 @@ const MM  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','A
 const MM3 = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const STAGES = ['Lead','Proposta','Negoziazione','Chiuso Vinto','Chiuso Perso'];
 const MEAL_SLOTS = ['colazione','spuntino','pranzo','merenda','cena'];
-const PAGE_TITLES = {dashboard:'Dashboard',week:'Settimana',personal:'Agenda personale',tasks:'Task & To-Do',meals:'Pasti',crm:'CRM Clienti',pipeline:'Pipeline Vendite',companies:'Aziende Clienti',ai:'Assistente AI'};
+const PAGE_TITLES = {dashboard:'Dashboard',week:'Settimana',personal:'Agenda personale',tasks:'Task & To-Do',meals:'Pasti',crm:'CRM Clienti',pipeline:'Pipeline Vendite',companies:'Aziende Clienti',notes:'Note',ai:'Assistente AI'};
 
-const S = {events:[],tasks:[],contacts:[],deals:[],foods:[],companies:[],selContact:null,selCompany:null,curPage:'dashboard',tkF:'pending',evF:'all',mF:'all'};
+const S = {events:[],tasks:[],contacts:[],deals:[],foods:[],companies:[],notes:[],selContact:null,selCompany:null,selNote:null,curPage:'dashboard',tkF:'pending',evF:'all',mF:'all',nF:'all'};
 let curModal=null, editId=null, aiHist=[];
 
 function setSync(state,msg){
@@ -508,7 +563,7 @@ function setSync(state,msg){
   const l1=document.getElementById('sync-lbl');if(l1)l1.textContent=msg;
   const l2=document.getElementById('msync-lbl');if(l2)l2.textContent=msg;
 }
-let loaded={events:false,tasks:false,contacts:false,deals:false,foods:false,companies:false};
+let loaded={events:false,tasks:false,contacts:false,deals:false,foods:false,companies:false,notes:false};
 function chkLoaded(){if(Object.values(loaded).every(Boolean))setSync('ok','Sincronizzato');}
 
 onSnap('events',   docs=>{S.events=docs;loaded.events=true;chkLoaded();renderAll();},()=>setSync('err','Errore'));
@@ -517,6 +572,7 @@ onSnap('contacts', docs=>{S.contacts=docs;loaded.contacts=true;chkLoaded();rende
 onSnap('deals',    docs=>{S.deals=docs;loaded.deals=true;chkLoaded();renderAll();},()=>setSync('err','Errore'));
 onSnap('foods',    docs=>{S.foods=docs;loaded.foods=true;chkLoaded();renderMeals();},()=>setSync('err','Errore'));
 onSnap('companies',docs=>{S.companies=docs;loaded.companies=true;chkLoaded();renderCompanies();},()=>setSync('err','Errore'));
+onSnap('notes',docs=>{S.notes=docs;loaded.notes=true;chkLoaded();renderNotes();},()=>setSync('err','Errore'));
 
 
 
@@ -528,11 +584,11 @@ function avClass(n){return 'av-'+((n.charCodeAt(0)+(n.charCodeAt(1)||0))%5);}
 function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
 function evColor(e){return e.type==='work'?'#1B5FA8':e.cat==='medico'?'#8C2B2B':'#0F6E56';}
 
-function renderAll(){renderDash();renderWeek();renderPersonal();renderTasks();renderCRM();renderPipeline();renderMeals();renderCompanies();updateBadges();}
+function renderAll(){renderDash();renderWeek();renderPersonal();renderTasks();renderCRM();renderPipeline();renderMeals();renderCompanies();renderNotes();updateBadges();}
 
 function updateBadges(){
   const today=new Date();today.setHours(0,0,0,0);
-  document.getElementById('badge-tasks').textContent=S.tasks.filter(t=>!t.done).length;
+  document.getElementById('badge-tasks').textContent=S.tasks.filter(t=>t.stato!=='completato'&&!t.done).length;
   document.getElementById('badge-personal').textContent=S.events.filter(e=>parseDate(e.date)>=today).length;
 }
 
@@ -542,9 +598,14 @@ function renderDash(){
   const up=S.events.filter(e=>{const d=parseDate(e.date);return d>=today&&d<=w7;}).sort((a,b)=>a.date.localeCompare(b.date));
   const op=S.tasks.filter(t=>!t.done);
   document.getElementById('k-ev').textContent=up.length;
-  document.getElementById('k-tk').textContent=op.length;
-  document.getElementById('k-ct').textContent=S.contacts.length;
-  document.getElementById('k-dl').textContent=S.deals.filter(d=>!['Chiuso Vinto','Chiuso Perso'].includes(d.stage)).length;
+  const daPian=S.tasks.filter(t=>t.stato==='da_pianificare'||(!t.stato&&!t.done)).length;
+  const attivi=S.tasks.filter(t=>t.stato==='attivo').length;
+  const blocc=S.tasks.filter(t=>t.stato==='bloccato').length;
+  const compl=S.tasks.filter(t=>t.stato==='completato'||t.done).length;
+  const kDp=document.getElementById('k-da-pian');if(kDp)kDp.textContent=daPian;
+  const kAt=document.getElementById('k-attivi');if(kAt)kAt.textContent=attivi;
+  const kBl=document.getElementById('k-blocc');if(kBl)kBl.textContent=blocc;
+  const kCo=document.getElementById('k-compl');if(kCo)kCo.textContent=compl;
   const strip=document.getElementById('days-strip');strip.innerHTML='';
   for(let i=0;i<3;i++){
     const d=new Date(today);d.setDate(today.getDate()+i);
@@ -573,15 +634,25 @@ function renderDashList() {
   const today=new Date();today.setHours(0,0,0,0);
   const w7=new Date(today);w7.setDate(w7.getDate()+7);
   const up=S.events.filter(e=>{const d=parseDate(e.date);return d>=today&&d<=w7;}).sort((a,b)=>a.date.localeCompare(b.date));
-  const op=S.tasks.filter(t=>!t.done&&t.due).filter(t=>{const d=parseDate(t.due);return d>=today&&d<=w7;}).sort((a,b)=>a.due.localeCompare(b.due));
+  const op=S.tasks.filter(t=>t.stato!=='completato'&&!t.done&&t.due).filter(t=>{const d=parseDate(t.due);return d>=today&&d<=w7;}).sort((a,b)=>a.due.localeCompare(b.due));
 
   let items = [];
   if(dashFilter !== 'tk') items = items.concat(up.map(e=>({type:'ev', date:e.date, el:
     `<div class="ev-item"><div class="ev-dot" style="background:${evColor(e)}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${esc(e.cat||'')}${e.location?' · '+esc(e.location):''}</div></div><div class="ev-date">${fmt3(e.date)}</div></div>`
   })));
-  if(dashFilter !== 'ev') items = items.concat(op.map(t=>({type:'tk', date:t.due, el:
-    `<div class="ev-item"><div class="ev-dot" style="background:var(--amber);flex-shrink:0"></div><div class="ev-info"><div class="ev-name">${esc(t.title)}</div><div class="ev-meta">task · ${t.cat||'personal'}</div></div><div class="ev-date" style="color:var(--amber)">${fmt3(t.due)}</div></div>`
-  })));
+  if(dashFilter !== 'ev') {
+    // Show urgent/blocked tasks regardless of due date, others only if due in 7 days
+    const urgentTasks = S.tasks.filter(t=>t.stato!=='completato'&&!t.done&&(t.prio==='urgente'||t.stato==='bloccato'));
+    const dueTasks = op.filter(t=>t.prio!=='urgente'&&t.stato!=='bloccato');
+    const allTasks = [...new Map([...urgentTasks,...dueTasks].map(t=>[t.id,t])).values()];
+    items = items.concat(allTasks.map(t=>{
+      const dotColor=t.stato==='bloccato'?'var(--red)':t.prio==='urgente'?'var(--red)':t.prio==='alta'?'var(--amber)':'var(--text3)';
+      const label=t.stato==='bloccato'?'🔴 Bloccato':t.prio==='urgente'?'🚨 Urgente':'task';
+      return {type:'tk', date:t.due||'9999', el:
+        `<div class="ev-item"><div class="ev-dot" style="background:${dotColor};flex-shrink:0"></div><div class="ev-info"><div class="ev-name">${prioIcon(t.prio)} ${esc(t.title)}</div><div class="ev-meta">${label}${t.due?' · scad. '+fmt3(t.due):''}</div></div>${t.due?`<div class="ev-date" style="color:var(--amber)">${fmt3(t.due)}</div>`:''}</div>`
+      };
+    }));
+  }
   items.sort((a,b)=>a.date.localeCompare(b.date));
   const el = document.getElementById('d-ev');
   if(!el) return;
@@ -703,7 +774,7 @@ function selDay(ds){
   const tks=S.tasks.filter(t=>t.due===ds&&!t.done);
   let inner='';
   if(evs.length){
-    inner+=evs.map(e=>`<div class="ev-item"><div class="ev-dot" style="background:${evColor(e)}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${e.time||''}${e.location?' · '+esc(e.location):''}</div></div><button class="edit-btn" onclick="openEditEvent('${e.id}')">✏️</button><button class="del" onclick="delItem('events','${e.id}')">✕</button></div>`).join('');
+    inner+=evs.map(e=>`<div class="ev-item"><div class="ev-dot" style="background:${evColor(e)}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${e.time||''}${e.location?' · '+esc(e.location):''}</div></div><button class="edit-btn" onclick="openEditEvent('${e.id}')">✏️</button><button class="del" onclick="window.delItem('events','${e.id}')">✕</button></div>`).join('');
   }
   if(tks.length){
     inner+=`<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:10px 0 6px">Task in scadenza</div>`;
@@ -727,31 +798,58 @@ function renderPersonal(){
         <div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace">${fmt3(e.date)} ${e.time||''}${e.location?' · '+esc(e.location):''}</div></div>
         <span class="tag tag-${e.cat||'altro'}">${e.cat||'altro'}</span>
         <button class="edit-btn" style="margin-left:6px" onclick="event.stopPropagation();openEditEvent('${e.id}')">✏️</button>
-        <button class="del" style="margin-left:4px" onclick="event.stopPropagation();delItem('events','${e.id}')">✕</button></div>`;
+        <button class="del" style="margin-left:4px" onclick="event.stopPropagation();window.delItem('events','${e.id}')">✕</button></div>`;
     }).join('')
     :'<div class="empty">Nessun appuntamento.<br>Usa + Aggiungi per inserirne uno.</div>';
 }
 
-function setTF(f,btn){S.tkF=f;document.querySelectorAll('#page-tasks .fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTasks();}
+function setTF(f,btn){S.tkF=f;document.querySelectorAll('#page-tasks .fb').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderTasks();}
 window.setTF=setTF;
+function prioIcon(p){return p==='urgente'?'🚨':p==='alta'?'🔴':p==='media'?'🟡':'🟢';}
+function statoLabel(s){return s==='da_pianificare'?'📋 Da pianif.':s==='attivo'?'▶️ Attivo':s==='bloccato'?'🔴 Bloccato':s==='completato'?'✅ Completato':'—';}
+function statoColor(s){return s==='bloccato'?'var(--red)':s==='completato'?'var(--green)':s==='attivo'?'var(--blue)':'var(--text3)';}
+
 function renderTasks(){
-  let tk=[...S.tasks];
-  if(S.tkF==='pending')tk=tk.filter(t=>!t.done);
-  else if(S.tkF==='work')tk=tk.filter(t=>t.cat==='work'&&!t.done);
-  else if(S.tkF==='personal')tk=tk.filter(t=>t.cat==='personal'&&!t.done);
-  else if(S.tkF==='urgent')tk=tk.filter(t=>t.cat==='urgent'&&!t.done);
-  else if(S.tkF==='done')tk=tk.filter(t=>t.done);
+  let tk=[...S.tasks].sort((a,b)=>{
+    const po={urgente:0,alta:1,media:2,bassa:3};
+    const so={bloccato:0,attivo:1,da_pianificare:2,completato:3};
+    const pd=(po[a.prio]||2)-(po[b.prio]||2);
+    if(pd!==0)return pd;
+    return (so[a.stato]||2)-(so[b.stato]||2);
+  });
+  if(S.tkF==='aperti')tk=tk.filter(t=>t.stato!=='completato'&&!t.done);
+  else if(S.tkF==='completato')tk=tk.filter(t=>t.stato==='completato'||t.done);
+  else if(S.tkF==='da_pianificare')tk=tk.filter(t=>t.stato==='da_pianificare');
+  else if(S.tkF==='attivo')tk=tk.filter(t=>t.stato==='attivo');
+  else if(S.tkF==='bloccato')tk=tk.filter(t=>t.stato==='bloccato');
+  else if(S.tkF==='urgente')tk=tk.filter(t=>t.prio==='urgente');
+  else if(S.tkF==='alta')tk=tk.filter(t=>t.prio==='alta'||t.prio==='urgente');
+  const comp=(id)=>S.companies.find(c=>c.id===id);
   document.getElementById('task-list').innerHTML=tk.length
-    ?tk.map(t=>`<div class="task-item" onclick="openEditTask('${t.id}')">
-        <div class="chk${t.done?' done':''}" onclick="event.stopPropagation();togTask('${t.id}')"><svg fill="none" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="tt${t.done?' done':''}" style="flex:1"><div>${esc(t.title)}</div>${t.due?`<div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px">${t.due}</div>`:''}</div>
-        <span class="tag tag-${t.cat||'personal'}">${t.cat||'personal'}</span>
-        <button class="edit-btn" style="margin-left:6px" onclick="event.stopPropagation();openEditTask('${t.id}')">✏️</button>
-        <button class="del" style="margin-left:4px" onclick="event.stopPropagation();delItem('tasks','${t.id}')">✕</button>
-      </div>`).join('')
+    ?tk.map(t=>{
+      const done=t.stato==='completato'||t.done;
+      const c=t.companyId?comp(t.companyId):null;
+      return `<div class="task-item" onclick="openEditTask('${t.id}')">
+        <div class="chk${done?' done':''}" onclick="event.stopPropagation();togTask('${t.id}')"><svg fill="none" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div style="flex:1;min-width:0">
+          <div class="tt${done?' done':''}">${prioIcon(t.prio)} ${esc(t.title)}</div>
+          <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:10px;font-weight:600;color:${statoColor(t.stato)}">${statoLabel(t.stato)}</span>
+            ${c?`<span class="tag tag-work" style="font-size:10px">${esc(c.name)}</span>`:''}
+            ${t.due?`<span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${t.due}</span>`:''}
+          </div>
+        </div>
+        <button class="edit-btn" onclick="event.stopPropagation();openEditTask('${t.id}')">✏️</button>
+        <button class="del" style="margin-left:4px" onclick="event.stopPropagation();window.delItem('tasks','${t.id}')">✕</button>
+      </div>`;
+    }).join('')
     :'<div class="empty">Nessun task qui.</div>';
 }
-function togTask(id){const t=S.tasks.find(t=>t.id===id);if(t)updItem('tasks',id,{done:!t.done});}
+function togTask(id){
+  const t=S.tasks.find(t=>t.id===id);if(!t)return;
+  const newStato=t.stato==='completato'?'attivo':'completato';
+  updItem('tasks',id,{stato:newStato,done:newStato==='completato'});
+}
 window.togTask=togTask;
 
 function setMF(f,btn){S.mF=f;document.querySelectorAll('#page-meals .fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderMeals();}
@@ -928,6 +1026,135 @@ function buildCompanyForm(c) {
     <div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes" placeholder="Info utili, dettagli contratto, accordi particolari...">${esc(c?.notes||'')}</textarea></div>`;
 }
 
+
+// ── NOTES ──
+let noteFilter = 'all';
+
+function setNF(f, btn) {
+  noteFilter = f;
+  document.querySelectorAll('#page-notes .fb').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderNotes();
+}
+window.setNF = setNF;
+
+function renderNotes() {
+  const q = (document.getElementById('notes-search')||{}).value||'';
+  let notes = [...S.notes].sort((a,b)=>(b.updatedAt||b._ts||'').localeCompare(a.updatedAt||a._ts||''));
+  if(noteFilter === 'archiviate') notes = notes.filter(n=>n.stato==='archiviata');
+  else {
+    notes = notes.filter(n=>n.stato!=='archiviata');
+    if(noteFilter === 'lavoro') notes = notes.filter(n=>n.tag==='lavoro');
+    else if(noteFilter === 'privato') notes = notes.filter(n=>n.tag==='privato');
+    else if(noteFilter === 'alta') notes = notes.filter(n=>n.priorita==='alta');
+  }
+  if(q) notes = notes.filter(n=>(n.titolo||'').toLowerCase().includes(q.toLowerCase())||(n.descrizione||'').toLowerCase().includes(q.toLowerCase()));
+  const el = document.getElementById('notes-list'); if(!el) return;
+  if(!notes.length){ el.innerHTML='<div class="empty">Nessuna nota.<br>Usa + Aggiungi per creare la prima nota.</div>'; return; }
+  el.innerHTML = notes.map(n=>{
+    const comp = n.companyId ? S.companies.find(c=>c.id===n.companyId) : null;
+    const cont = n.contactId ? S.contacts.find(c=>c.id===n.contactId) : null;
+    const prioClass = n.priorita ? 'prio-'+n.priorita : '';
+    const dateStr = n.updatedAt ? `Mod. ${new Date(n.updatedAt).toLocaleDateString('it-IT')}` : n.createdAt ? new Date(n.createdAt).toLocaleDateString('it-IT') : '';
+    return `<div class="note-card ${prioClass}${n.stato==='archiviata'?' archiviata':''}" onclick="openNotePanel('${n.id}')">
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
+        <div class="note-title" style="flex:1">${esc(n.titolo||'Senza titolo')}</div>
+        <div style="display:flex;gap:5px;flex-shrink:0">
+          ${n.tag?`<span class="tag tag-note-${n.tag}">${n.tag}</span>`:''}
+          ${n.priorita?`<span class="tag tag-prio-${n.priorita}">${n.priorita==='alta'?'🔴':n.priorita==='media'?'🟡':'🟢'} ${n.priorita}</span>`:''}
+        </div>
+      </div>
+      <div class="note-preview">${esc(n.descrizione||'')}</div>
+      <div class="note-meta">
+        <span class="note-meta-item">${dateStr}</span>
+        ${comp?`<span class="tag tag-work" style="font-size:10px">${esc(comp.name)}</span>`:''}
+        ${cont?`<span class="note-meta-item">· ${esc(cont.name)}</span>`:''}
+        <div style="margin-left:auto;display:flex;gap:5px">
+          <button class="edit-btn" onclick="event.stopPropagation();openEditNote('${n.id}')">✏️</button>
+          <button class="del" onclick="event.stopPropagation();window.delItem('notes','${n.id}')">✕</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.renderNotes = renderNotes;
+
+function openNotePanel(id) {
+  const n = S.notes.find(n=>n.id===id); if(!n) return;
+  S.selNote = id;
+  const panel = document.getElementById('note-detail-panel');
+  if(!panel) return;
+  panel.style.display = 'flex';
+  document.getElementById('note-panel-title').textContent = n.titolo||'Senza titolo';
+  const editBtn = document.getElementById('note-panel-edit-btn');
+  const delBtn = document.getElementById('note-panel-del-btn');
+  if(editBtn) editBtn.onclick = () => openEditNote(id);
+  if(delBtn) delBtn.onclick = () => { window.delItem('notes',id); closeNotePanel(); };
+  const comp = n.companyId ? S.companies.find(c=>c.id===n.companyId) : null;
+  const cont = n.contactId ? S.contacts.find(c=>c.id===n.contactId) : null;
+  const createdStr = n.createdAt ? new Date(n.createdAt).toLocaleDateString('it-IT') : '—';
+  const updatedStr = n.updatedAt ? new Date(n.updatedAt).toLocaleDateString('it-IT') : '—';
+  document.getElementById('note-panel-body').innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      ${n.tag?`<span class="tag tag-note-${n.tag}">${n.tag}</span>`:''}
+      ${n.priorita?`<span class="tag tag-prio-${n.priorita}">${n.priorita==='alta'?'🔴':n.priorita==='media'?'🟡':'🟢'} ${n.priorita}</span>`:''}
+      ${n.stato==='archiviata'?'<span class="tag tag-altro">Archiviata</span>':''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;font-size:12px;color:var(--text3)">
+      <div><label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Creata</label>${createdStr}</div>
+      <div><label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Modificata</label>${updatedStr}</div>
+      ${comp?`<div><label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Azienda</label>${esc(comp.name)}</div>`:''}
+      ${cont?`<div><label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Contatto</label>${esc(cont.name)}</div>`:''}
+    </div>
+    <div style="font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap">${esc(n.descrizione||'')}</div>`;
+}
+window.openNotePanel = openNotePanel;
+
+function closeNotePanel() {
+  const panel = document.getElementById('note-detail-panel');
+  if(panel) panel.style.display = 'none';
+  S.selNote = null;
+}
+window.closeNotePanel = closeNotePanel;
+
+function openEditNote(id) {
+  const n = S.notes.find(n=>n.id===id); if(!n) return;
+  closeNotePanel();
+  curModal='note'; editId=id;
+  document.getElementById('modal-title').textContent='Modifica nota';
+  document.getElementById('modal-body').innerHTML = buildNoteForm(n);
+  document.getElementById('overlay').classList.add('open');
+}
+window.openEditNote = openEditNote;
+
+function buildNoteForm(n) {
+  const today = new Date().toISOString().split('T')[0];
+  const compOpts = S.companies.map(c=>`<option value="${c.id}"${n&&n.companyId===c.id?' selected':''}>${esc(c.name)}</option>`).join('');
+  const contOpts = S.contacts.map(c=>`<option value="${c.id}"${n&&n.contactId===c.id?' selected':''}>${esc(c.name)}</option>`).join('');
+  return `
+    <div class="fg"><label class="fl">Titolo *</label><input class="fi" id="f-ntitle" value="${esc(n?.titolo||'')}" placeholder="es. Riunione con cliente, Idea progetto..."></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Tag</label><select class="fi" id="f-ntag">
+        <option value="lavoro"${(!n||n.tag==='lavoro')?' selected':''}>Lavoro</option>
+        <option value="privato"${n?.tag==='privato'?' selected':''}>Privato</option>
+      </select></div>
+      <div class="fg"><label class="fl">Priorità</label><select class="fi" id="f-nprio">
+        <option value="bassa"${(!n||n.priorita==='bassa')?' selected':''}>🟢 Bassa</option>
+        <option value="media"${n?.priorita==='media'?' selected':''}>🟡 Media</option>
+        <option value="alta"${n?.priorita==='alta'?' selected':''}>🔴 Alta</option>
+      </select></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Collega azienda</label><select class="fi" id="f-ncompany"><option value="">— nessuna —</option>${compOpts}</select></div>
+      <div class="fg"><label class="fl">Collega contatto</label><select class="fi" id="f-ncontact"><option value="">— nessuno —</option>${contOpts}</select></div>
+    </div>
+    <div class="fg"><label class="fl">Stato</label><select class="fi" id="f-nstato">
+      <option value="attiva"${(!n||n.stato==='attiva')?' selected':''}>Attiva</option>
+      <option value="archiviata"${n?.stato==='archiviata'?' selected':''}>Archiviata</option>
+    </select></div>
+    <div class="fg"><label class="fl">Descrizione</label><textarea class="fi" id="f-ndesc" style="min-height:160px" placeholder="Scrivi qui il contenuto della nota...">${esc(n?.descrizione||'')}</textarea></div>`;
+}
+
 function goPage(page,sidebarEl){
   S.curPage=page;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -939,7 +1166,7 @@ function goPage(page,sidebarEl){
   const mt=document.getElementById('mob-title');if(mt)mt.textContent=PAGE_TITLES[page]||page;
   const ma=document.getElementById('mob-add');if(ma)ma.style.display=['week','ai'].includes(page)?'none':'';
   document.querySelectorAll('.mbn').forEach(b=>b.classList.remove('active'));
-  const bnMap={dashboard:'dashboard',tasks:'tasks',week:'week',personal:'week',crm:'crm',pipeline:'crm',companies:'crm',ai:'ai',meals:'tasks'};
+  const bnMap={dashboard:'dashboard',tasks:'tasks',week:'week',personal:'week',crm:'crm',pipeline:'crm',companies:'crm',notes:'crm',ai:'ai',meals:'tasks'};
   const bn=document.getElementById('mbn-'+(bnMap[page]||page));if(bn)bn.classList.add('active');
   if(page==='crm'&&S.selContact)renderCD(S.selContact);
 }
@@ -957,11 +1184,30 @@ function buildEventForm(e){
     <div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes">${esc(e?.notes||'')}</textarea></div>`;
 }
 function buildTaskForm(t){
-  const co=S.contacts.map(c=>`<option value="${c.id}"${t&&t.contactId===c.id?' selected':''}>${esc(c.name)}</option>`).join('');
-  return `<div class="fg"><label class="fl">Titolo *</label><input class="fi" id="f-title" value="${esc(t?.title||'')}" placeholder="es. Chiamare cliente"></div>
-    <div class="fr"><div class="fg"><label class="fl">Categoria</label><select class="fi" id="f-cat"><option value="work"${t?.cat==='work'?' selected':''}>Lavoro</option><option value="personal"${t?.cat==='personal'?' selected':''}>Personale</option><option value="urgent"${t?.cat==='urgent'?' selected':''}>Urgente</option></select></div>
-    <div class="fg"><label class="fl">Scadenza</label><input type="date" class="fi" id="f-date" value="${t?.due||''}"></div></div>
-    <div class="fg"><label class="fl">Collega a contatto CRM</label><select class="fi" id="f-cid"><option value="">— nessuno —</option>${co}</select></div>
+  const compOpts=S.companies.map(c=>`<option value="${c.id}"${t&&t.companyId===c.id?' selected':''}>${esc(c.name)}</option>`).join('');
+  return `<div class="fg"><label class="fl">Titolo *</label><input class="fi" id="f-title" value="${esc(t?.title||'')}" placeholder="es. Preparare offerta, Chiamare cliente"></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Priorità</label><select class="fi" id="f-prio">
+        <option value="bassa"${(!t||t.prio==='bassa')?' selected':''}>🟢 Bassa</option>
+        <option value="media"${t?.prio==='media'?' selected':''}>🟡 Media</option>
+        <option value="alta"${t?.prio==='alta'?' selected':''}>🔴 Alta</option>
+        <option value="urgente"${t?.prio==='urgente'?' selected':''}>🚨 Urgente</option>
+      </select></div>
+      <div class="fg"><label class="fl">Stato</label><select class="fi" id="f-stato">
+        <option value="da_pianificare"${(!t||t.stato==='da_pianificare')?' selected':''}>📋 Da pianificare</option>
+        <option value="attivo"${t?.stato==='attivo'?' selected':''}>▶️ Attivo</option>
+        <option value="bloccato"${t?.stato==='bloccato'?' selected':''}>🔴 Bloccato</option>
+        <option value="completato"${t?.stato==='completato'?' selected':''}>✅ Completato</option>
+      </select></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Categoria</label><select class="fi" id="f-cat">
+        <option value="work"${(!t||t.cat==='work')?' selected':''}>Lavoro</option>
+        <option value="personal"${t?.cat==='personal'?' selected':''}>Personale</option>
+      </select></div>
+      <div class="fg"><label class="fl">Scadenza</label><input type="date" class="fi" id="f-date" value="${t?.due||''}"></div>
+    </div>
+    <div class="fg"><label class="fl">Collega ad azienda</label><select class="fi" id="f-cid"><option value="">— nessuna —</option>${compOpts}</select></div>
     <div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes">${esc(t?.notes||'')}</textarea></div>`;
 }
 function buildFoodForm(f){
@@ -985,6 +1231,7 @@ function openModal(){
   else if(p==='meals'){curModal='food';t.textContent='Nuovo alimento';b.innerHTML=buildFoodForm(null);}
   else if(p==='crm'){curModal='contact';t.textContent='Nuovo contatto';const compOpts = S.companies.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
     b.innerHTML=`<div class="fr"><div class="fg"><label class="fl">Nome *</label><input class="fi" id="f-name" placeholder="Mario Rossi"></div><div class="fg"><label class="fl">Azienda (CRM)</label><select class="fi" id="f-companyId"><option value="">— nessuna —</option>${compOpts}</select></div></div><div class="fr"><div class="fg"><label class="fl">Ruolo</label><input class="fi" id="f-role"></div><div class="fg"><label class="fl">Stato</label><select class="fi" id="f-status"><option value="lead">Lead</option><option value="prospect">Prospect</option><option value="cliente">Cliente</option></select></div></div><div class="fr"><div class="fg"><label class="fl">Email</label><input class="fi" id="f-email" type="email"></div><div class="fg"><label class="fl">Telefono</label><input class="fi" id="f-phone" type="tel"></div></div><div class="fr"><div class="fg"><label class="fl">Settore</label><input class="fi" id="f-sector"></div><div class="fg"><label class="fl">Città</label><input class="fi" id="f-city"></div></div><div class="fg"><label class="fl">Valore stimato (€)</label><input class="fi" id="f-value" type="number" min="0"></div><div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes"></textarea></div>`;}
+  else if(p==='notes'){curModal='note';editId=null;t.textContent='Nuova nota';b.innerHTML=buildNoteForm(null);}
   else if(p==='companies'){curModal='company';editId=null;t.textContent='Nuova azienda';b.innerHTML=buildCompanyForm(null);}
   else if(p==='pipeline'){curModal='deal';t.textContent='Nuova trattativa';b.innerHTML=`<div class="fg"><label class="fl">Nome trattativa *</label><input class="fi" id="f-name" placeholder="es. Fornitura 2025"></div><div class="fr"><div class="fg"><label class="fl">Stadio</label><select class="fi" id="f-stage">${STAGES.map(s=>`<option>${s}</option>`).join('')}</select></div><div class="fg"><label class="fl">Valore (€)</label><input class="fi" id="f-value" type="number" min="0"></div></div><div class="fr"><div class="fg"><label class="fl">Contatto</label><select class="fi" id="f-contact"><option value="">— nessuno —</option>${S.contacts.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('')}</select></div><div class="fg"><label class="fl">Follow-up entro</label><input type="date" class="fi" id="f-followup"></div></div><div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes"></textarea></div>`;}
   else return;
@@ -1006,8 +1253,9 @@ async function saveModal(){
     if(editId)await updItem('events',editId,data);else await addItem('events',data);
   } else if(curModal==='task'){
     const title=(g('f-title').value||'').trim();if(!title){alert('Titolo obbligatorio.');return;}
-    const data={title,cat:g('f-cat').value,due:g('f-date').value,contactId:g('f-cid').value,notes:g('f-notes').value};
-    if(editId)await updItem('tasks',editId,data);else await addItem('tasks',{...data,done:false});
+    const stato=g('f-stato').value;
+    const data={title,cat:g('f-cat').value,prio:g('f-prio').value,stato,due:g('f-date').value,companyId:g('f-cid').value,notes:g('f-notes').value,done:stato==='completato'};
+    if(editId)await updItem('tasks',editId,data);else await addItem('tasks',data);
   } else if(curModal==='food'){
     const name=(g('f-name').value||'').trim();if(!name){alert('Nome obbligatorio.');return;}
     const data={name,slot:g('f-slot').value,note:g('f-note').value};
@@ -1018,6 +1266,12 @@ async function saveModal(){
   } else if(curModal==='deal'){
     const name=(g('f-name').value||'').trim();if(!name){alert('Nome obbligatorio.');return;}
     await addItem('deals',{name,stage:g('f-stage').value,value:g('f-value').value,contact:g('f-contact').value,followup:g('f-followup').value,notes:g('f-notes').value});
+  } else if(curModal==='note'){
+    const titolo=(g('f-ntitle').value||'').trim();if(!titolo){alert('Titolo obbligatorio.');return;}
+    const now = new Date().toISOString();
+    const data={titolo,tag:g('f-ntag').value,priorita:g('f-nprio').value,companyId:g('f-ncompany').value,contactId:g('f-ncontact').value,stato:g('f-nstato').value,descrizione:g('f-ndesc').value,updatedAt:now};
+    if(editId) await updItem('notes',editId,data);
+    else await addItem('notes',{...data,createdAt:now});
   } else if(curModal==='company'){
     const name=(g('f-cname').value||'').trim();if(!name){alert('Nome azienda obbligatorio.');return;}
     const data={name,sector:g('f-sector').value,status:g('f-status').value,website:g('f-website').value,budget:g('f-budget').value,billing:g('f-billing').value,contractStart:g('f-cstart').value,contractEnd:g('f-cend').value,notes:g('f-notes').value};
