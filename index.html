@@ -362,15 +362,40 @@ textarea.fi{resize:vertical;min-height:65px}
         <div id="personal-list"></div>
       </div>
       <div class="page" id="page-tasks">
-        <div class="filters">
-          <button class="fb active" onclick="setTF('aperti',this)">Aperti</button>
-          <button class="fb" onclick="setTF('da_pianificare',this)">📋 Da pianificare</button>
-          <button class="fb" onclick="setTF('attivo',this)">▶️ Attivi</button>
-          <button class="fb" onclick="setTF('bloccato',this)">🔴 Bloccati</button>
-          <button class="fb" onclick="setTF('completato',this)">✅ Completati</button>
-          <button class="fb" onclick="setTF('urgente',this)">🚨 Urgenti</button>
-          <button class="fb" onclick="setTF('alta',this)">🔴 Alta priorità</button>
-          <button class="fb" onclick="setTF('all',this)">Tutti</button>
+        <!-- Filtri task -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)">
+          <!-- Riga 1: Stato -->
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Stato</div>
+          <div class="filters" style="margin-bottom:12px" id="tf-stato-group">
+            <button class="fb active" onclick="setTF('stato','aperti',this)">Tutti aperti</button>
+            <button class="fb" onclick="setTF('stato','da_pianificare',this)">📋 Da pianificare</button>
+            <button class="fb" onclick="setTF('stato','attivo',this)">▶️ Attivi</button>
+            <button class="fb" onclick="setTF('stato','bloccato',this)">🔴 Bloccati</button>
+            <button class="fb" onclick="setTF('stato','completato',this)">✅ Completati</button>
+            <button class="fb" onclick="setTF('stato','all',this)">Tutti</button>
+          </div>
+          <!-- Riga 2: Priorità -->
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Priorità</div>
+          <div class="filters" style="margin-bottom:12px" id="tf-prio-group">
+            <button class="fb active" onclick="setTF('prio','all',this)">Tutte</button>
+            <button class="fb" onclick="setTF('prio','urgente',this)">🚨 Urgente</button>
+            <button class="fb" onclick="setTF('prio','alta',this)">🔴 Alta</button>
+            <button class="fb" onclick="setTF('prio','media',this)">🟡 Media</button>
+            <button class="fb" onclick="setTF('prio','bassa',this)">🟢 Bassa</button>
+          </div>
+          <!-- Riga 3: Azienda + cerca -->
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <div style="flex:1;min-width:160px">
+              <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Azienda</div>
+              <select class="fi" id="tf-company" onchange="renderTasks()" style="font-size:12px;padding:6px 10px">
+                <option value="">Tutte le aziende</option>
+              </select>
+            </div>
+            <div style="flex:1;min-width:160px">
+              <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Cerca</div>
+              <input class="fi" id="tf-search" placeholder="Cerca nel titolo..." oninput="renderTasks()" style="font-size:12px;padding:6px 10px">
+            </div>
+          </div>
         </div>
         <div id="task-list"></div>
       </div>
@@ -555,7 +580,7 @@ const STAGES = ['Lead','Proposta','Negoziazione','Chiuso Vinto','Chiuso Perso'];
 const MEAL_SLOTS = ['colazione','spuntino','pranzo','merenda','cena'];
 const PAGE_TITLES = {dashboard:'Dashboard',week:'Settimana',personal:'Agenda personale',tasks:'Task & To-Do',meals:'Pasti',crm:'CRM Clienti',pipeline:'Pipeline Vendite',companies:'Aziende Clienti',notes:'Note',ai:'Assistente AI'};
 
-const S = {events:[],tasks:[],contacts:[],deals:[],foods:[],companies:[],notes:[],selContact:null,selCompany:null,selNote:null,curPage:'dashboard',tkF:'pending',evF:'all',mF:'all',nF:'all'};
+const S = {events:[],tasks:[],contacts:[],deals:[],foods:[],companies:[],notes:[],selContact:null,selCompany:null,selNote:null,curPage:'dashboard',tkF:{stato:'aperti',prio:'all'},evF:'all',mF:'all',nF:'all'};
 let curModal=null, editId=null, aiHist=[];
 
 function setSync(state,msg){
@@ -803,13 +828,35 @@ function renderPersonal(){
     :'<div class="empty">Nessun appuntamento.<br>Usa + Aggiungi per inserirne uno.</div>';
 }
 
-function setTF(f,btn){S.tkF=f;document.querySelectorAll('#page-tasks .fb').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');renderTasks();}
+// tkF is now an object: {stato, prio}
+function setTF(dim, val, btn) {
+  S.tkF[dim] = val;
+  // deactivate only buttons in the same group
+  const groupId = dim==='stato' ? 'tf-stato-group' : 'tf-prio-group';
+  const group = document.getElementById(groupId);
+  if(group) group.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderTasks();
+}
 window.setTF=setTF;
+
+function populateCompanyFilter() {
+  const sel = document.getElementById('tf-company'); if(!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Tutte le aziende</option>' +
+    S.companies.map(c=>`<option value="${c.id}"${current===c.id?' selected':''}>${esc(c.name)}</option>`).join('');
+}
 function prioIcon(p){return p==='urgente'?'🚨':p==='alta'?'🔴':p==='media'?'🟡':'🟢';}
 function statoLabel(s){return s==='da_pianificare'?'📋 Da pianif.':s==='attivo'?'▶️ Attivo':s==='bloccato'?'🔴 Bloccato':s==='completato'?'✅ Completato':'—';}
 function statoColor(s){return s==='bloccato'?'var(--red)':s==='completato'?'var(--green)':s==='attivo'?'var(--blue)':'var(--text3)';}
 
 function renderTasks(){
+  populateCompanyFilter();
+  const statoF = (S.tkF&&S.tkF.stato) ? S.tkF.stato : 'aperti';
+  const prioF  = (S.tkF&&S.tkF.prio)  ? S.tkF.prio  : 'all';
+  const compF  = (document.getElementById('tf-company')||{}).value || '';
+  const searchF= ((document.getElementById('tf-search')||{}).value||'').toLowerCase();
+
   let tk=[...S.tasks].sort((a,b)=>{
     const po={urgente:0,alta:1,media:2,bassa:3};
     const so={bloccato:0,attivo:1,da_pianificare:2,completato:3};
@@ -817,13 +864,26 @@ function renderTasks(){
     if(pd!==0)return pd;
     return (so[a.stato]||2)-(so[b.stato]||2);
   });
-  if(S.tkF==='aperti')tk=tk.filter(t=>t.stato!=='completato'&&!t.done);
-  else if(S.tkF==='completato')tk=tk.filter(t=>t.stato==='completato'||t.done);
-  else if(S.tkF==='da_pianificare')tk=tk.filter(t=>t.stato==='da_pianificare');
-  else if(S.tkF==='attivo')tk=tk.filter(t=>t.stato==='attivo');
-  else if(S.tkF==='bloccato')tk=tk.filter(t=>t.stato==='bloccato');
-  else if(S.tkF==='urgente')tk=tk.filter(t=>t.prio==='urgente');
-  else if(S.tkF==='alta')tk=tk.filter(t=>t.prio==='alta'||t.prio==='urgente');
+
+  // Stato filter
+  if(statoF==='aperti')       tk=tk.filter(t=>t.stato!=='completato'&&!t.done);
+  else if(statoF==='completato') tk=tk.filter(t=>t.stato==='completato'||t.done);
+  else if(statoF==='da_pianificare') tk=tk.filter(t=>t.stato==='da_pianificare');
+  else if(statoF==='attivo')  tk=tk.filter(t=>t.stato==='attivo');
+  else if(statoF==='bloccato') tk=tk.filter(t=>t.stato==='bloccato');
+  // 'all' = no filter
+
+  // Priorità filter
+  if(prioF==='urgente') tk=tk.filter(t=>t.prio==='urgente');
+  else if(prioF==='alta') tk=tk.filter(t=>t.prio==='alta');
+  else if(prioF==='media') tk=tk.filter(t=>t.prio==='media');
+  else if(prioF==='bassa') tk=tk.filter(t=>t.prio==='bassa');
+
+  // Azienda filter
+  if(compF) tk=tk.filter(t=>t.companyId===compF);
+
+  // Testo filter
+  if(searchF) tk=tk.filter(t=>(t.title||'').toLowerCase().includes(searchF));
   const comp=(id)=>S.companies.find(c=>c.id===id);
   document.getElementById('task-list').innerHTML=tk.length
     ?tk.map(t=>{
