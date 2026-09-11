@@ -621,12 +621,23 @@ function renderWeek() {
     const ds = toDS(d);
     const isToday = d.getTime() === today.getTime();
     const evs = S.events.filter(e => e.date === ds);
-    const cnt = evs.length;
-    const pills = evs.slice(0,3).map(e => `<div class="cal-pill" style="background:${evColor(e)}"></div>`).join('');
+    const tks = S.tasks.filter(t => t.due === ds && !t.done);
+    const evCnt = evs.length;
+    const tkCnt = tks.length;
+    const total = evCnt + tkCnt;
+    const evPills = evs.slice(0,2).map(e => `<div class="cal-pill" style="background:${evColor(e)}"></div>`).join('');
+    const tkPills = tks.slice(0,1).map(() => `<div class="cal-pill" style="background:var(--text3)"></div>`).join('');
+    let badge = '';
+    if (total > 0) {
+      const parts = [];
+      if (evCnt > 0) parts.push(`<span style="color:var(--blue)">${evCnt} ev.</span>`);
+      if (tkCnt > 0) parts.push(`<span style="color:var(--text2)">${tkCnt} task</span>`);
+      badge = `<div class="cal-badge" style="background:var(--surface2);color:var(--text2);gap:4px;display:inline-flex;flex-wrap:wrap">${parts.join('<span style="color:var(--text3)">·</span>')}</div>`;
+    }
     html += `<div class="cal-cell${isToday?' today':''}${otherMonth?' other-month':''}" id="cc-${ds}" onclick="selDay('${ds}')">
       <div class="cal-cell-num">${d.getDate()}</div>
-      ${cnt > 0 ? `<div class="cal-badge">${cnt} evento${cnt>1?'i':''}</div>` : ''}
-      <div class="cal-pills">${pills}</div>
+      ${total > 0 ? badge : ''}
+      <div class="cal-pills">${evPills}${tkPills}</div>
     </div>`;
   });
   html += '</div>';
