@@ -177,6 +177,30 @@ textarea.fi{resize:vertical;min-height:65px}
 .ai-send{padding:9px 15px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;display:flex;align-items:center;gap:5px}
 .ai-send svg{width:14px;height:14px;stroke:#fff;stroke-width:2.2}
 .empty{text-align:center;padding:28px 16px;color:var(--text3);font-size:13px;line-height:1.6}
+
+/* ── CALENDAR VIEWS ── */
+.cal-grid{display:grid;gap:4px}
+.cal-grid.v-1w{grid-template-columns:repeat(7,1fr)}
+.cal-grid.v-2w{grid-template-columns:repeat(7,1fr)}
+.cal-grid.v-1m{grid-template-columns:repeat(7,1fr)}
+.cal-head-row{display:contents}
+.cal-day-label{text-align:center;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:4px 0 6px}
+.cal-cell{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 6px;min-height:64px;cursor:pointer;transition:border-color .15s;position:relative;display:flex;flex-direction:column;gap:4px}
+.cal-cell:hover{border-color:var(--border2)}
+.cal-cell.today{border-color:var(--accent);border-width:2px}
+.cal-cell.selected{background:var(--accent)}
+.cal-cell.selected .cal-cell-num{color:#fff}
+.cal-cell.selected .cal-badge{background:rgba(255,255,255,.25);color:#fff}
+.cal-cell.other-month{opacity:.4}
+.cal-cell-num{font-size:13px;font-weight:600;line-height:1}
+.cal-badge{display:inline-flex;align-items:center;justify-content:center;background:var(--blue-bg);color:var(--blue);font-size:10px;font-weight:700;border-radius:20px;padding:2px 7px;margin-top:2px;width:fit-content}
+.cal-pills{display:flex;flex-direction:column;gap:2px;margin-top:2px}
+.cal-pill{height:3px;border-radius:2px;width:100%}
+@media(max-width:700px){
+  .cal-cell{min-height:44px;padding:5px 3px}
+  .cal-cell-num{font-size:12px}
+  .cal-badge{font-size:9px;padding:1px 5px}
+}
 .mob-bar{display:none}.mob-bnav{display:none}
 @media(max-width:700px){
   body{overflow:auto}
@@ -264,8 +288,26 @@ textarea.fi{resize:vertical;min-height:65px}
         </div>
       </div>
       <div class="page" id="page-week">
-        <div class="card"><div class="card-head">Vista settimanale</div><div class="week-grid" id="week-grid"></div></div>
-        <div class="card"><div class="card-head" id="day-title">Seleziona un giorno</div><div id="day-body"><div class="empty">Clicca su un giorno.</div></div></div>
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="card-head" style="margin-bottom:0">Calendario</div>
+            <div style="display:flex;gap:6px">
+              <button class="fb active" id="vbtn-1w" onclick="setCalView('1w',this)">1 Settimana</button>
+              <button class="fb" id="vbtn-2w" onclick="setCalView('2w',this)">2 Settimane</button>
+              <button class="fb" id="vbtn-1m" onclick="setCalView('1m',this)">Mese</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <button class="btn" onclick="calNav(-1)" style="padding:5px 10px">&#8249;</button>
+            <div id="cal-range-label" style="font-size:13px;font-weight:500;color:var(--text2)"></div>
+            <button class="btn" onclick="calNav(1)" style="padding:5px 10px">&#8250;</button>
+          </div>
+          <div id="cal-grid-wrap"></div>
+        </div>
+        <div class="card" id="day-detail-card" style="display:none">
+          <div class="card-head" id="day-title">Seleziona un giorno</div>
+          <div id="day-body"><div class="empty">Clicca su un giorno.</div></div>
+        </div>
       </div>
       <div class="page" id="page-personal">
         <div class="filters">
@@ -498,27 +540,117 @@ function renderDash(){
   document.getElementById('d-tk').innerHTML=op.length?op.slice(0,5).map(t=>`<div class="task-item" onclick="openEditTask('${t.id}')"><div class="chk" onclick="event.stopPropagation();togTask('${t.id}')"><svg fill="none" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="tt">${esc(t.title)}</div><span class="tag tag-${t.cat||'personal'}">${t.cat||'personal'}</span></div>`).join(''):'<div class="empty">Nessun task aperto. Ottimo!</div>';
 }
 
-function renderWeek(){
-  const today=new Date();today.setHours(0,0,0,0);
-  const dow=today.getDay();
-  const mon=new Date(today);mon.setDate(today.getDate()-(dow===0?6:dow-1));
-  const grid=document.getElementById('week-grid');grid.innerHTML='';
-  for(let i=0;i<7;i++){
-    const d=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
-    const ds=toDS(d);const isT=d.getTime()===today.getTime();
-    const evs=S.events.filter(e=>e.date===ds);
-    grid.innerHTML+=`<div class="dc${isT?' today':''}" id="dc-${ds}" onclick="selDay('${ds}')"><div class="dcname">${GG[d.getDay()]}</div><div class="dcnum">${d.getDate()}</div><div class="dcpills">${evs.slice(0,3).map(e=>`<div class="dcpill" style="background:${evColor(e)}"></div>`).join('')}</div></div>`;
+// ── CALENDAR STATE ──
+let calView = '1w';   // '1w' | '2w' | '1m'
+let calOffset = 0;    // weeks or months offset from today
+
+function setCalView(v, btn) {
+  calView = v; calOffset = 0;
+  document.querySelectorAll('#page-week .fb').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderWeek();
+}
+window.setCalView = setCalView;
+
+function calNav(dir) {
+  calOffset += dir;
+  renderWeek();
+}
+window.calNav = calNav;
+
+function renderWeek() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const wrap = document.getElementById('cal-grid-wrap');
+  const label = document.getElementById('cal-range-label');
+  if (!wrap) return;
+
+  // Determine date range
+  let days = [];
+
+  if (calView === '1w' || calView === '2w') {
+    const weeks = calView === '1w' ? 1 : 2;
+    const dow = today.getDay();
+    const mon = new Date(today);
+    mon.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+    mon.setDate(mon.getDate() + calOffset * 7);
+    const total = weeks * 7;
+    for (let i = 0; i < total; i++) {
+      const d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+      days.push(d);
+    }
+    const first = days[0], last = days[days.length-1];
+    if (first.getMonth() === last.getMonth())
+      label.textContent = `${first.getDate()} – ${last.getDate()} ${MM[first.getMonth()]} ${first.getFullYear()}`;
+    else
+      label.textContent = `${first.getDate()} ${MM3[first.getMonth()]} – ${last.getDate()} ${MM3[last.getMonth()]} ${first.getFullYear()}`;
+  } else {
+    // Monthly view
+    const base = new Date(today.getFullYear(), today.getMonth() + calOffset, 1);
+    label.textContent = `${MM[base.getMonth()]} ${base.getFullYear()}`;
+    const firstDay = base.getDay(); // 0=Sun
+    const offset = firstDay === 0 ? 6 : firstDay - 1; // Mon-start offset
+    const daysInMonth = new Date(base.getFullYear(), base.getMonth()+1, 0).getDate();
+    // Pad before
+    for (let i = offset; i > 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth(), 1 - i);
+      days.push({d, otherMonth: true});
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({d: new Date(base.getFullYear(), base.getMonth(), i), otherMonth: false});
+    }
+    // Pad after to complete last row
+    const remaining = days.length % 7 === 0 ? 0 : 7 - (days.length % 7);
+    for (let i = 1; i <= remaining; i++) {
+      days.push({d: new Date(base.getFullYear(), base.getMonth()+1, i), otherMonth: true});
+    }
+    // Normalise to objects
+    days = days.map(x => typeof x === 'object' && x.d ? x : {d: x, otherMonth: false});
   }
+
+  // Normalise for 1w/2w (no otherMonth)
+  if (calView !== '1m') days = days.map(d => ({d, otherMonth: false}));
+
+  // Build grid
+  let html = `<div class="cal-grid v-${calView}">`;
+  // Day headers
+  GG.slice(1).concat(GG[0]).forEach(g => {
+    html += `<div class="cal-day-label">${g}</div>`;
+  });
+  // Cells
+  days.forEach(({d, otherMonth}) => {
+    const ds = toDS(d);
+    const isToday = d.getTime() === today.getTime();
+    const evs = S.events.filter(e => e.date === ds);
+    const cnt = evs.length;
+    const pills = evs.slice(0,3).map(e => `<div class="cal-pill" style="background:${evColor(e)}"></div>`).join('');
+    html += `<div class="cal-cell${isToday?' today':''}${otherMonth?' other-month':''}" id="cc-${ds}" onclick="selDay('${ds}')">
+      <div class="cal-cell-num">${d.getDate()}</div>
+      ${cnt > 0 ? `<div class="cal-badge">${cnt} evento${cnt>1?'i':''}</div>` : ''}
+      <div class="cal-pills">${pills}</div>
+    </div>`;
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
 }
 function selDay(ds){
-  document.querySelectorAll('.dc').forEach(c=>c.classList.remove('sel'));
-  const dc=document.getElementById('dc-'+ds);if(dc)dc.classList.add('sel');
+  // Deselect previous
+  document.querySelectorAll('.cal-cell').forEach(c=>c.classList.remove('selected'));
+  const cc=document.getElementById('cc-'+ds);if(cc)cc.classList.add('selected');
   const d=parseDate(ds);
+  const card=document.getElementById('day-detail-card');
+  if(card) card.style.display='block';
   document.getElementById('day-title').textContent=`${GG[d.getDay()]} ${d.getDate()} ${MM[d.getMonth()]}`;
   const evs=S.events.filter(e=>e.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  document.getElementById('day-body').innerHTML=evs.length
-    ?evs.map(e=>`<div class="ev-item"><div class="ev-dot" style="background:${evColor(e)}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${e.time||''}${e.location?' · '+esc(e.location):''}</div></div><button class="edit-btn" onclick="openEditEvent('${e.id}')">✏️</button><button class="del" onclick="delItem('events','${e.id}')">✕</button></div>`).join('')
-    :'<div class="empty">Nessun appuntamento.</div>';
+  const tks=S.tasks.filter(t=>t.due===ds&&!t.done);
+  let inner='';
+  if(evs.length){
+    inner+=evs.map(e=>`<div class="ev-item"><div class="ev-dot" style="background:${evColor(e)}"></div><div class="ev-info"><div class="ev-name">${esc(e.title)}</div><div class="ev-meta">${e.time||''}${e.location?' · '+esc(e.location):''}</div></div><button class="edit-btn" onclick="openEditEvent('${e.id}')">✏️</button><button class="del" onclick="delItem('events','${e.id}')">✕</button></div>`).join('');
+  }
+  if(tks.length){
+    inner+=`<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:10px 0 6px">Task in scadenza</div>`;
+    inner+=tks.map(t=>`<div class="ev-item"><div class="ev-dot" style="background:var(--text3)"></div><div class="ev-info"><div class="ev-name">${esc(t.title)}</div><div class="ev-meta">task · ${t.cat||'personal'}</div></div><button class="edit-btn" onclick="openEditTask('${t.id}')">✏️</button></div>`).join('');
+  }
+  document.getElementById('day-body').innerHTML=inner||'<div class="empty">Nessun appuntamento o task.</div>';
 }
 window.selDay=selDay;
 
