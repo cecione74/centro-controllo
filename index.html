@@ -79,6 +79,7 @@ body{overflow:hidden}
 .tag-sport{background:var(--green-bg);color:var(--green)}
 .tag-sociale{background:var(--purple-bg);color:var(--purple)}
 .tag-auto{background:var(--amber-bg);color:var(--amber)}
+.tag-bimbi{background:#FDE8FB;color:#7A0C74}
 .tag-lavoro{background:var(--blue-bg);color:var(--blue)}
 .tag-altro{background:var(--surface2);color:var(--text2)}
 .tag-colazione{background:#FDF0D8;color:#7A4D0A}
@@ -350,14 +351,25 @@ textarea.fi{resize:vertical;min-height:65px}
         </div>
       </div>
       <div class="page" id="page-personal">
-        <div class="filters">
-          <button class="fb active" onclick="setEF('all',this)">Tutti</button>
-          <button class="fb" onclick="setEF('lavoro',this)">Lavoro</button>
-          <button class="fb" onclick="setEF('medico',this)">Medico</button>
-          <button class="fb" onclick="setEF('sport',this)">Sport</button>
-          <button class="fb" onclick="setEF('sociale',this)">Sociale</button>
-          <button class="fb" onclick="setEF('auto',this)">Auto/Scooter</button>
-          <button class="fb" onclick="setEF('altro',this)">Altro</button>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow)">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Categoria</div>
+          <div class="filters" style="margin-bottom:10px" id="ef-cat-group">
+            <button class="fb active" onclick="setEF('all',this)">Tutti</button>
+            <button class="fb" onclick="setEF('lavoro',this)">💼 Lavoro</button>
+            <button class="fb" onclick="setEF('medico',this)">🏥 Medico</button>
+            <button class="fb" onclick="setEF('sport',this)">🏃 Sport</button>
+            <button class="fb" onclick="setEF('sociale',this)">🍻 Sociale</button>
+            <button class="fb" onclick="setEF('bimbi',this)">👶 Bimbi</button>
+            <button class="fb" onclick="setEF('auto',this)">🚗 Auto</button>
+            <button class="fb" onclick="setEF('altro',this)">📌 Altro</button>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px">Stato</div>
+          <div class="filters" style="margin-bottom:0" id="ef-stato-group">
+            <button class="fb active" onclick="setEFStato('all',this)">Tutti</button>
+            <button class="fb" onclick="setEFStato('confermato',this)">✅ Confermati</button>
+            <button class="fb" onclick="setEFStato('da_confermare',this)">⏳ Da confermare</button>
+            <button class="fb" onclick="setEFStato('annullato',this)">❌ Annullati</button>
+          </div>
         </div>
         <div id="personal-list"></div>
       </div>
@@ -580,7 +592,7 @@ const STAGES = ['Lead','Proposta','Negoziazione','Chiuso Vinto','Chiuso Perso'];
 const MEAL_SLOTS = ['colazione','spuntino','pranzo','merenda','cena'];
 const PAGE_TITLES = {dashboard:'Dashboard',week:'Settimana',personal:'Agenda personale',tasks:'Task & To-Do',meals:'Pasti',crm:'CRM Clienti',pipeline:'Pipeline Vendite',companies:'Aziende Clienti',notes:'Note',ai:'Assistente AI'};
 
-const S = {events:[],tasks:[],contacts:[],deals:[],foods:[],companies:[],notes:[],selContact:null,selCompany:null,selNote:null,curPage:'dashboard',tkF:{stato:'aperti',prio:'all'},evF:'all',mF:'all',nF:'all'};
+const S = {events:[],tasks:[],contacts:[],deals:[],foods:[],companies:[],notes:[],selContact:null,selCompany:null,selNote:null,curPage:'dashboard',tkF:{stato:'aperti',prio:'all'},evF:'all',evStatoF:'all',mF:'all',nF:'all'};
 let curModal=null, editId=null, aiHist=[];
 
 function setSync(state,msg){
@@ -614,7 +626,7 @@ function renderAll(){renderDash();renderWeek();renderPersonal();renderTasks();re
 function updateBadges(){
   const today=new Date();today.setHours(0,0,0,0);
   document.getElementById('badge-tasks').textContent=S.tasks.filter(t=>t.stato!=='completato'&&!t.done).length;
-  document.getElementById('badge-personal').textContent=S.events.filter(e=>parseDate(e.date)>=today).length;
+  document.getElementById('badge-personal').textContent=S.events.filter(e=>parseDate(e.date)>=today&&e.evstato!=='annullato').length;
 }
 
 function renderDash(){
@@ -636,7 +648,7 @@ function renderDash(){
     const d=new Date(today);d.setDate(today.getDate()+i);
     const ds=toDS(d);
     const label=i===0?'Oggi':i===1?'Domani':GG[d.getDay()]+' '+d.getDate();
-    const dayEvs=S.events.filter(e=>e.date===ds).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    const dayEvs=S.events.filter(e=>e.date===ds&&e.evstato!=='annullato').sort((a,b)=>(a.time||'').localeCompare(b.time||''));
     const dayTks=S.tasks.filter(t=>!t.done&&t.due===ds);
     const all=[...dayEvs.map(e=>({title:e.title,sub:e.time||'',color:evColor(e)})),...dayTks.map(t=>({title:t.title,sub:'task',color:'#A09E97'}))];
     const inner=all.length?all.map(x=>`<div class="day-sched-item"><div class="day-sched-dot" style="background:${x.color}"></div><div class="day-sched-body"><div class="day-sched-title">${esc(x.title)}</div>${x.sub?`<div class="day-sched-sub">${esc(x.sub)}</div>`:''}</div></div>`).join(''):`<div class="empty" style="padding:12px 0">Libero</div>`;
@@ -809,23 +821,76 @@ function selDay(ds){
 }
 window.selDay=selDay;
 
-function setEF(f,btn){S.evF=f;document.querySelectorAll('#page-personal .fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderPersonal();}
+function setEF(f,btn){
+  S.evF=f;
+  const group=document.getElementById('ef-cat-group');
+  if(group) group.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderPersonal();
+}
 window.setEF=setEF;
+
+function setEFStato(f,btn){
+  S.evStatoF=f;
+  const group=document.getElementById('ef-stato-group');
+  if(group) group.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderPersonal();
+}
+window.setEFStato=setEFStato;
+// Reminder check: show badge if event is soon
+function remindBadge(e) {
+  if(!e.remind||e.remind==='') return '';
+  const today=new Date();today.setHours(0,0,0,0);
+  const evDate=parseDate(e.date);
+  const diff=Math.round((evDate-today)/(1000*60*60*24));
+  const days=parseInt(e.remind);
+  if(diff>=0 && diff<=days) return `<span class="tag tag-urgent" style="font-size:10px">🔔 tra ${diff}gg</span>`;
+  return '';
+}
+
+function statoEvBadge(s) {
+  if(!s||s==='confermato') return '';
+  if(s==='da_confermare') return `<span class="tag" style="background:var(--amber-bg);color:var(--amber);font-size:10px">⏳ Da conf.</span>`;
+  if(s==='annullato') return `<span class="tag tag-urgent" style="font-size:10px">❌ Annullato</span>`;
+  return '';
+}
+
+function recurBadge(r) {
+  if(!r) return '';
+  const icons={settimanale:'🔁 Sett.',mensile:'🔁 Mens.',annuale:'🔁 Ann.'};
+  return `<span class="tag tag-altro" style="font-size:10px">${icons[r]||''}</span>`;
+}
+
 function renderPersonal(){
   const today=new Date();today.setHours(0,0,0,0);
-  let evs=S.events.sort((a,b)=>a.date.localeCompare(b.date));
-  if(S.evF!=='all')evs=evs.filter(e=>e.cat===S.evF);
+  // Hide past events, sort by date ascending
+  let evs=S.events.filter(e=>parseDate(e.date)>=today).sort((a,b)=>a.date.localeCompare(b.date));
+  if(S.evF!=='all') evs=evs.filter(e=>e.cat===S.evF);
+  if(S.evStatoF&&S.evStatoF!=='all') evs=evs.filter(e=>(e.evstato||'confermato')===S.evStatoF);
   document.getElementById('personal-list').innerHTML=evs.length
     ?evs.map(e=>{
-      const past=parseDate(e.date)<today;
-      return `<div class="task-item" style="${past?'opacity:.5':''}" onclick="openEditEvent('${e.id}')">
-        <div class="ev-info" style="flex:1"><div class="tt">${esc(e.title)}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:'DM Mono',monospace">${fmt3(e.date)} ${e.time||''}${e.location?' · '+esc(e.location):''}</div></div>
-        <span class="tag tag-${e.cat||'altro'}">${e.cat||'altro'}</span>
-        <button class="edit-btn" style="margin-left:6px" onclick="event.stopPropagation();openEditEvent('${e.id}')">✏️</button>
-        <button class="del" style="margin-left:4px" onclick="event.stopPropagation();window.delItem('events','${e.id}')">✕</button></div>`;
+      const annullato=e.evstato==='annullato';
+      return `<div class="task-item" style="${annullato?'opacity:.4':''}" onclick="openEditEvent('${e.id}')">
+        <div class="ev-info" style="flex:1">
+          <div class="tt" style="margin-bottom:4px">${esc(e.title)}</div>
+          <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:5px">
+            📅 ${fmt3(e.date)}${e.time?' · ⏰ '+e.time:''}${e.location?' · 📍 '+esc(e.location):''}${e.with?' · 👥 '+esc(e.with):''}
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="tag tag-${e.cat||'altro'}">${e.cat||'altro'}</span>
+            ${statoEvBadge(e.evstato)}
+            ${recurBadge(e.recur)}
+            ${remindBadge(e)}
+          </div>
+        </div>
+        <div style="display:flex;gap:5px;margin-left:8px">
+          <button class="edit-btn" onclick="event.stopPropagation();openEditEvent('${e.id}')">✏️</button>
+          <button class="del" onclick="event.stopPropagation();window.delItem('events','${e.id}')">✕</button>
+        </div>
+      </div>`;
     }).join('')
-    :'<div class="empty">Nessun appuntamento.<br>Usa + Aggiungi per inserirne uno.</div>';
+    :'<div class="empty">Nessun appuntamento futuro.<br>Usa + Aggiungi per inserirne uno.</div>';
 }
 
 // tkF is now an object: {stato, prio}
@@ -1235,11 +1300,51 @@ window.goPage=goPage;
 function buildEventForm(e){
   const today=new Date().toISOString().split('T')[0];
   const co=S.contacts.map(c=>`<option value="${c.id}"${e&&e.contactId===c.id?' selected':''}>${esc(c.name)}</option>`).join('');
-  return `<div class="fg"><label class="fl">Titolo *</label><input class="fi" id="f-title" value="${esc(e?.title||'')}" placeholder="es. Visita cardiologo"></div>
-    <div class="fr"><div class="fg"><label class="fl">Data *</label><input type="date" class="fi" id="f-date" value="${e?.date||today}"></div><div class="fg"><label class="fl">Ora</label><input type="time" class="fi" id="f-time" value="${e?.time||''}"></div></div>
-    <div class="fr"><div class="fg"><label class="fl">Tipo</label><select class="fi" id="f-type"><option value="personal"${e?.type!=='work'?' selected':''}>Personale</option><option value="work"${e?.type==='work'?' selected':''}>Lavoro</option></select></div>
-    <div class="fg"><label class="fl">Categoria</label><select class="fi" id="f-cat"><option value="medico"${e?.cat==='medico'?' selected':''}>Medico</option><option value="sport"${e?.cat==='sport'?' selected':''}>Sport</option><option value="sociale"${e?.cat==='sociale'?' selected':''}>Sociale</option><option value="auto"${e?.cat==='auto'?' selected':''}>Auto/Scooter</option><option value="lavoro"${e?.cat==='lavoro'?' selected':''}>Lavoro</option><option value="altro"${(!e?.cat||e?.cat==='altro')?' selected':''}>Altro</option></select></div></div>
-    <div class="fg"><label class="fl">Luogo</label><input class="fi" id="f-loc" value="${esc(e?.location||'')}" placeholder="es. Studio medico"></div>
+  return `
+    <div class="fg"><label class="fl">Titolo *</label><input class="fi" id="f-title" value="${esc(e?.title||'')}" placeholder="es. Visita cardiologo, Padel con Marco"></div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Data *</label><input type="date" class="fi" id="f-date" value="${e?.date||today}"></div>
+      <div class="fg"><label class="fl">Ora</label><input type="time" class="fi" id="f-time" value="${e?.time||''}"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Tipo</label><select class="fi" id="f-type">
+        <option value="personal"${e?.type!=='work'?' selected':''}>Personale</option>
+        <option value="work"${e?.type==='work'?' selected':''}>Lavoro</option>
+      </select></div>
+      <div class="fg"><label class="fl">Categoria</label><select class="fi" id="f-cat">
+        <option value="medico"${e?.cat==='medico'?' selected':''}>🏥 Medico</option>
+        <option value="sport"${e?.cat==='sport'?' selected':''}>🏃 Sport</option>
+        <option value="sociale"${e?.cat==='sociale'?' selected':''}>🍻 Sociale</option>
+        <option value="bimbi"${e?.cat==='bimbi'?' selected':''}>👶 Bimbi</option>
+        <option value="auto"${e?.cat==='auto'?' selected':''}>🚗 Auto/Scooter</option>
+        <option value="lavoro"${e?.cat==='lavoro'?' selected':''}>💼 Lavoro</option>
+        <option value="altro"${(!e?.cat||e?.cat==='altro')?' selected':''}>📌 Altro</option>
+      </select></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Stato</label><select class="fi" id="f-evstato">
+        <option value="confermato"${(!e?.evstato||e?.evstato==='confermato')?' selected':''}>✅ Confermato</option>
+        <option value="da_confermare"${e?.evstato==='da_confermare'?' selected':''}>⏳ Da confermare</option>
+        <option value="annullato"${e?.evstato==='annullato'?' selected':''}>❌ Annullato</option>
+      </select></div>
+      <div class="fg"><label class="fl">Ricorrenza</label><select class="fi" id="f-recur">
+        <option value=""${!e?.recur?' selected':''}>Nessuna</option>
+        <option value="settimanale"${e?.recur==='settimanale'?' selected':''}>Settimanale</option>
+        <option value="mensile"${e?.recur==='mensile'?' selected':''}>Mensile</option>
+        <option value="annuale"${e?.recur==='annuale'?' selected':''}>Annuale</option>
+      </select></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label class="fl">Promemoria</label><select class="fi" id="f-remind">
+        <option value=""${!e?.remind?' selected':''}>Nessuno</option>
+        <option value="0"${e?.remind==='0'?' selected':''}>Il giorno stesso</option>
+        <option value="1"${e?.remind==='1'?' selected':''}>1 giorno prima</option>
+        <option value="2"${e?.remind==='2'?' selected':''}>2 giorni prima</option>
+        <option value="7"${e?.remind==='7'?' selected':''}>1 settimana prima</option>
+      </select></div>
+      <div class="fg"><label class="fl">Con chi</label><input class="fi" id="f-with" value="${esc(e?.with||'')}" placeholder="es. Marco, Luca"></div>
+    </div>
+    <div class="fg"><label class="fl">Luogo</label><input class="fi" id="f-loc" value="${esc(e?.location||'')}" placeholder="es. Studio medico, Palestra"></div>
     <div class="fg"><label class="fl">Collega a contatto CRM</label><select class="fi" id="f-cid"><option value="">— nessuno —</option>${co}</select></div>
     <div class="fg"><label class="fl">Note</label><textarea class="fi" id="f-notes">${esc(e?.notes||'')}</textarea></div>`;
 }
@@ -1309,7 +1414,7 @@ async function saveModal(){
   if(curModal==='event'){
     const title=(g('f-title').value||'').trim();const date=g('f-date').value;
     if(!title||!date){alert('Titolo e data obbligatori.');return;}
-    const data={title,date,time:g('f-time').value,type:g('f-type').value,cat:g('f-cat').value,location:g('f-loc').value,contactId:g('f-cid').value,notes:g('f-notes').value};
+    const data={title,date,time:g('f-time').value,type:g('f-type').value,cat:g('f-cat').value,evstato:g('f-evstato').value,recur:g('f-recur').value,remind:g('f-remind').value,with:g('f-with').value,location:g('f-loc').value,contactId:g('f-cid').value,notes:g('f-notes').value};
     if(editId)await updItem('events',editId,data);else await addItem('events',data);
   } else if(curModal==='task'){
     const title=(g('f-title').value||'').trim();if(!title){alert('Titolo obbligatorio.');return;}
